@@ -9,9 +9,8 @@ module circmem_tb();
 reg [5:0] tb_clkdiv_64;
 reg       tb_clk_64;		// 64x clock (1 MHz)
 wire      tb_clk;
-wire      tb_clk_neg;		// 1/64 clock (15.525 kHz)
+wire      tb_clk_neg;		// 1/64 clock (15.625 kHz)
 reg       tb_rstn;
-
 
 // ---- CLOCK GENERATOR ----
 assign tb_clk     = tb_clkdiv_64[6];
