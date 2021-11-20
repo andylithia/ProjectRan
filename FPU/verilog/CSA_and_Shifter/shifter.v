@@ -1,3 +1,6 @@
+// 16-bit Barrel Shifter
+// Ref: http://www.barrywatson.se/dd/dd_shifter_barrel.html
+
 module barrel_shifter_16(Y, A, S);
    output [15:0] Y;  // The shifted result.
    input [15:0]  A;  // The value to be shifted.
