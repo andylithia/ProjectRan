@@ -1,30 +1,30 @@
-module mul(p, a, b, clock);
-output [21:0] p;
-input [10:0] a, b;
+module mulparam #(parameter width=11)(p, a, b, clock);
+output [2*width-1:0] p;
+input [width-1:0] a, b;
 input clock;
-reg [21:0] p, ans;
+reg [2*width-1:0] p, ans;
 
 integer i, lookup_tbl;
 integer operate;
 
 initial
 begin
-	p = 21'b0;
-	ans = 21'b0;
+	p = 0;
+	ans = 0;
 	
 end
 
 always @(negedge clock)
 begin
-	p = 21'b0;
-	for(i=1;i<=11;i=i+2)
+	p = 0;
+	for(i=1;i<=width;i=i+2)
 	begin
 		if(i==1)
 			lookup_tbl = 0;
 		else
 			lookup_tbl = b[i-2];
 
-		if(i==11)
+		if(i==width)
 			lookup_tbl = lookup_tbl + 2*b[i-1];
 		else
 			lookup_tbl = lookup_tbl + 4*b[i] + 2*b[i-1];
@@ -47,28 +47,4 @@ begin
 				p = p + ans;
 			end
 		2:
-			begin
-				ans = a<<1;
-				ans=ans<<(i-1);
-				p = p + ans;
-			end
-		-1:
-			begin
-				ans = ~a+1;
-				ans = ans<<(i-1);
-				p = p + ans;
-			end
-		-2:
-			begin
-				ans = a << 1;
-				ans = ~ans + 1;
-				ans = ans << (i-1);
-				p = p + ans;
-			end
-		endcase
-	end
-end
-endmodule
-
-			
 
