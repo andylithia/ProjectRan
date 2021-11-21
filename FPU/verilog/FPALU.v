@@ -5,7 +5,6 @@
 // TODO: 
 // 1. Add Latches to minimize useless flipping
 
-
 //            FORMAT  SIGN  EXP  MANTISSA  WIDTH
 //  RAW IEEE  FP16    1     5    10        16
 //  INPUT     FP16i   1     5    11        17
@@ -39,105 +38,23 @@ localparam AL_MANSIZE = 2 * ML_MANSIZE;
 localparam AL_EXPSIZE = 1 + ML_EXPSIZE;
 localparam AL_FPSIZE  = 1 + AL_EXPSIZE + AL_MANSIZE;
 
+localparam OPSIZE = 2;
 
-// ----- PIPELINE STAGE 2 ----- 
-// ADDER SECTION
-// Task 1: Shift & Mantissa Inversion
-reg  [6:0] s2_ea_sub_eb_r;
-reg  [5:0] s2_ea_sub_eb_abs_r;  // Absolute Value, for the shifter
-// reg        s2_ea_gt_eb_r;
-reg        s2_exp_largediff_r;  // Deactivate the shifter
-reg        s2_addsub_r;
-reg        s2_xchg_r;           // Exchange Addsub Input
-always @(posedge clk) begin
-	s2_ea_sub_eb_r     <= s1_ea_sub_eb;
-	s2_ea_sub_eb_abs_r <= s1_ea_sub_eb_abs;
-	// s2_ea_gt_eb_r      <= s1_ea_gt_eb;
-	s2_exp_largediff_r <= s1_exp_largediff;
-	s2_addsub_r        <= s1_addsub;
-	s2_xchg_r          <= s1_xchg;
-end
-
-// Operand MUX
-reg  [21:0] s2_mmux21_larger_r;
-reg  [21:0] s2_mmux22_smaller_r;
-always @(posedge clk) begin
-	if(s1_ea_gt_eb) begin
-		s2_mmux21_larger  <= din_uni_a_man_dn;
-		if(s1_exp_largediff) // Keep & Bypass
-			s2_mmux22_smaller_r <= s2_mmux22_smaller_r;
-		else                 // Update
-			s2_mmux21_smaller_r <= din_uni_b_man_dn;
-	end else begin
-		s2_mmux21_larger  <= din_uni_b_man_dn;         
-		if(s1_exp_largediff) // Keep & Bypass
-			s2_mmux22_smaller_r <= s2_mmux22_smaller_r;
-		else                 // Update
-			s2_mmux21_smaller_r <= din_uni_a_man_dn;
-	end
-end
-
-// Shifter & Mantissa Inversion Implementation
-reg [21:0] s2_mmux23_smaller_preinv;    // Zero Add Sub MUX  
-reg [21:0] s2_mmux24_smaller_out;       // Mantissa Inversion MUX
-always @* begin
-	if(s2_exp_largediff_r) s2_mmux23_smaller_preinv = 0;
-	else                   s2_mmux23_smaller_preinv = {{s2_mmux21_smaller_r,22'b0}>>(s2_ea_sub_eb_abs_r)}[21:0];
-	if(~s2_addsub_r) s2_mmux24_smaller_out = ~s2_mmux23_smaller_preinv;
-	else             s2_mmux24_smaller_out =  s2_mmux23_smaller_preinv;
-end
-
-// ----- PIPELINE STAGE 3 ----- 
-// PIPELINE RELAY
-reg  [6:0] s3_ea_sub_eb_r;
-reg        s3_ea_gt_eb_r;
-reg        s3_addsub_r;
-
-always @(posedge clk) begin
-	s3_addsub_r <= s2_addsub_r;
-
-end
-
-
-// Section: Adder
-
-// Input Exchanger: ManY = A ± B
-reg [21:0]  s3_mmux3_a_r;
-reg [21:0]  s3_mmux3_b_r;
-always @(posedge clk) begin
-	if(s2_xchg_r) begin
-		if(s2_ea_gt_eb_r) begin
-			// A is in the larger_r, B is in the smaller_r
-			s3_mmux3_a_r <= s2_mmux21_larger_r;
-			s3_mmux3_b_r <= s2_mmux24_smaller_out;  
-		end else begin
-			// B is in the larger_r, A is in the smaller_r
-			s3_mmux3_b_r <= s2_mmux21_larger_r;
-			s3_mmux3_a_r <= s2_mmux24_smaller_out;  
-		end
-	end else begin
-		if(s2_ea_gt_eb_r) begin
-			// A is in the larger_r, B is in the smaller_r
-			s3_mmux3_b_r <= s2_mmux21_larger_r;
-			s3_mmux3_a_r <= s2_mmux24_smaller_out;  
-		end else begin
-			// B is in the larger_r, A is in the smaller_r
-			s3_mmux3_a_r <= s2_mmux21_larger_r;
-			s3_mmux3_b_r <= s2_mmux24_smaller_out;  
-		end        
-	end
-end
-
-// Addsub Implementation
-wire [22:0]  s3_many_out;
-wire         s3_cin;
-assign s3_cin = ~s3_addsub_r;
-assign s3_many_out = {s3_mmux3_a_r[21], s3_mmux3_a_r} + {s3_mmux3_b_r[21], s3_mmux3_b_r} + s3_cin;
+localparam OPC_ADD29i  = 2'b11;	// Adding   Mode
+localparam OPC_MUL16i  = 2'b10;	// Multiply Mode
+localparam OPC_ADDSKIP = 2'b01;	// We found a zero, skip the addition entirely
+localparam OPC_SLEEP   = 2'b00; // Low Power Mode
 
 
 // ----- PIPELINE STAGE 1 -----
 //
-wire s1_opcode;
+wire [OPSIZE-1:0] s1_opcode = add_muln;
+
+// ACHTUNG:
+// You MUST deal with zeros somewhere, maybe here.
+// e.g. adding 0e10 to 123e0 will result in 0e10, which is clearly incorrect
+// when one of the input is all zeros, you must give up the current exponent compare
+
 
 // ADDER: Exponent Compare
 wire [AL_EXPSIZE:0]   s1_ea_sub_eb = {1'b0,din_uni_a_exp} - {1'b0,din_uni_b_exp};
@@ -163,7 +80,7 @@ xchg #(.DWIDTH(22)) s1_u_manxchg(
 // ----- PIPELINE STAGE 2 -----
 //
 // Pipeline Signal Relay
-reg                  s2_opcode_r;
+reg [OPSIZE-1:0]     s2_opcode_r;
 always @(posedge clk) begin
 	s2_opcode_r <= s1_opcode;
 end
@@ -213,34 +130,84 @@ wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub = s2_addsubn_r ? \
 // ----- PIPELINE STAGE 3 -----
 //
 // SEGMENT 1. Pipeline Signal Relay
-reg  s3_opcode_r;
+reg [OPSIZE-1:0]     s3_opcode_r;
 always @(posedge clk) begin
-	s3_opcode_r <= s2_opcode;
+	s3_opcode_r <= s2_opcode_r;
 end
 
 // ADDER: Summing (CLA)
-
-// ----- PIPELINE STAGE 4 -----
-// UNIFIED OUTPUT STAGE: Zero Detect and EXP Bias Calculation
-// SEGMENT 1. Pipeline Signal Relay
-reg  s4_opcode_r;
+reg [AL_MANSIZE:0]  s3_lhs_r;
+reg [AL_MANSIZE:0]  s3_rhs_r;
+reg                 s3_addsubn_r;
 always @(posedge clk) begin
-	s4_opcode_r <= s3_opcode;
-
+	s3_lhs_r     <= s2_mmux2_lhs;
+	s3_rhs_r     <= s2_mmux3_rhs_addsub;
+	s3_addsubn_r <= s2_addsubn_r;
 end
 
+wire [AL_MANSIZE:0] s3_alu_out;
+assign s3_alu_out = s3_lhs_r + s3_rhs_r + ~s3_addsubn_r;
 
-// Leading Zero Detect:
+// ----- PIPELINE STAGE 4 -----
+// 
+// General Note for S4 and S5:
+//  In a regular FP Pipeline, all operations need to perform zero detect
+//  and shifting. (i.e. Normalization)
+//  But our application, FIR, is special:
+//  Normalization in constant multiplication is useless, 
+//  The result will be re-normalized anyway during the accumulation
+//  so we can actually save two cycles on multiplication
+//  
 
+// UNIFIED OUTPUT STAGE: Zero Detect and EXP Bias Calculation
+// Pipeline Signal Relay
+reg [OPSIZE-1:0]     s4_opcode_r;
+always @(posedge clk) begin
+	s4_opcode_r <= s3_opcode_r;
+end
+
+reg [AL_MANSIZE:0] s4_alu_out_r;
+reg [4:0]          s4_lzd;
+always @(posedge clk) begin
+	s4_alu_out_r <= s3_alu_out;
+end
+// ADDER: Leading Zero Detect:
+count_lead_zero #(.W_IN(32)) s4_u_lzd(
+	.in({s4_alu_out_r,{(32-AL_MANSIZE-1){1'b0}}}),
+	.out(s4_lzd)
+);
+
+// We don't deal with zeros here:
+//  Because the mantissa within the ALU is always DENORMALIZED,
+//  Adding zeros is just adding zeros to the mantissa.
+// With additional processing you may be able to get lower power
+//  (By skipping zero in the entire addition pipeline)
+//  but the chance of having zero is not high anyway. 
+// READ the note at stage 1 for more info
 
 // ----- PIPELINE STAGE 5 -----
 // UNIFIED OUTPUT STAGE: Final Shifting, Truncation, etc
-// SEGMENT 1. Pipeline Signal Relay
-reg  s5_opcode_r;
+// Pipeline Signal Relay
+reg [OPSIZE-1:0]     s5_opcode_r;
 always @(posedge clk) begin
-	s5_opcode_r <= s4_opcode;
-
+	s5_opcode_r <= s4_opcode_r;
 end
+
+// ADDER: Final Shifter
+reg [AL_MANSIZE:0] s5_alu_out_r;
+reg [4:0]          s5_lzd_r;
+always @(posedge clk) begin
+	s5_alu_out_r <= s4_alu_out_r;
+	s5_lzd_r     <= s4_lzd;
+end
+bsl #(.SWIDTH(5)) s5_u_bsl (
+	.din(s5_alu_out_r),
+	.s(s5_lzd_r),
+	.filler(1'b0),
+	.dout(dout_uni_y_man_dn)
+);
+
+// UNIFIED: Exponent Adjust
 
 
 endmodule /* FPALU */
