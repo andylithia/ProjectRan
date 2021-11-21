@@ -18,7 +18,7 @@ assign ob = xchg ? ia : ib;
 endmodule /* xchg */
 
 // Parametrized Barrel Shifter
-module brshift #(
+module bsr #(
 	parameter SWIDTH = 5
 )(
 	input [(2**SWIDTH)-1:0]     din,
@@ -36,18 +36,18 @@ assign dout    = temp[SWIDTH];
 genvar gi;
 generate
 	for(gi=0;gi<SWIDTH;gi=gi+1) begin : gen_brshift
-    assign temp[gi+1] = s[gi] ? \
-		{{(2**gi){filler}},temp[gi]>>(2**gi)} : temp[gi];
+		assign temp[gi+1] = s[gi] ? \
+			{{(2**gi){filler}},temp[gi]>>(2**gi)} : temp[gi];
 	end
 endgenerate
 
-endmodule   /* brshift */
+endmodule   /* bsr */
 
-module brshift_tb;
+module bsr_tb;
     reg [31:0] din;
     reg [4:0]  s;
     wire [31:0] dout;
-    brshift dut(
+    bsr #(.SWIDTH(32)) dut(
         .din(din),
         .s(s),
         .filler(1'b0),
