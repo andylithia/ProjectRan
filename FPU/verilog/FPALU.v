@@ -62,8 +62,7 @@ wire [OPSIZE-1:0] s1_opcode = add_muln;
 wire [AL_EXPSIZE:0]   s1_ea_sub_eb = {1'b0,din_uni_a_exp} - {1'b0,din_uni_b_exp};
 wire                  s1_ea_lt_eb  = s1_ea_sub_eb[AL_EXPSIZE];
 wire                  s1_ea_gte_eb  = s1_ea_lt_eb;
-wire [AL_EXPSIZE-1:0] s1_ea_sub_eb_abs = s1_ea_gt_eb ? \
-		s1_ea_sub_eb[AL_EXPSIZE-1:0] : {~s1_ea_sub_eb+1'b1}[AL_EXPSIZE-1:0];
+wire [AL_EXPSIZE-1:0] s1_ea_sub_eb_abs = s1_ea_gte_eb ?  s1_ea_sub_eb[AL_EXPSIZE-1:0] : {~s1_ea_sub_eb+1'b1};
 // ADDER: Sign Compare
 wire       s1_addsubn = ~(din_uni_a_sgn ^ din_uni_b_sgn);	// 1: ADD, 0: SUB
 // ADDER: Shifter XCHG
@@ -102,8 +101,8 @@ reg                  s2_addsubn_r;
 always @(posedge clk) begin
 	s2_ea_sub_eb_abs_r <= s1_ea_sub_eb_abs;
 	s2_ea_gte_eb_r     <= s1_ea_gte_eb;
-	s2_mmux_lhs_r      <= s1_mmux_lhs_r;
-	s2_mmux_rhs_r      <= s2_mmux_rhs_r;
+	s2_mmux_lhs_r      <= s1_mmux_lhs;
+	s2_mmux_rhs_r      <= s1_mmux_rhs;
 	s2_addsubn_r       <= s1_addsubn;
 end
 
@@ -112,16 +111,14 @@ end
 // when the zero has a larger exponent
 wire              s2_lhs_is_zero = |s2_mmux_lhs_r;
 wire [OPSIZE-1:0] s2_opcode_mod;
-assign s2_opcode_mod = ((s2_opcode_r==OPC_ADD29i)&&s2_lhs_is_zero) ? \
-	OPC_ADDSKIP : s2_opcode_r;
+  assign s2_opcode_mod = ((s2_opcode_r==OPC_ADD29i)&&s2_lhs_is_zero) ? OPC_ADDSKIP : s2_opcode_r;
 
 // ADDER: Shifter
 // When shifting by [MSB], the output becomes zero
 wire [31:0]	s2_bsr_out;
-wire [AL_MANSIZE-1:0] s2_bsr_out_gated = s2_ea_sub_eb_abs_r[AL_EXPSIZE-1] ? \
-		{AL_MANSIZE{1'b0}} : s2_bsr_out[31:32-AL_MANSIZE];
+  wire [AL_MANSIZE-1:0] s2_bsr_out_gated = s2_ea_sub_eb_abs_r[AL_EXPSIZE-1]  ? {AL_MANSIZE{1'b0}} : s2_bsr_out[31:32-AL_MANSIZE];
 bsr #(.SWIDTH(AL_EXPSIZE-1)) s2_u_bsr(
-	.din(s2_mmux_rhs_r),
+  .din({s2_mmux_rhs_r,10'b0}),
 	.s(s2_ea_sub_eb_abs_r[AL_EXPSIZE-2:0]),
 	.filler(1'b0),
 	.dout(s2_bsr_out)
@@ -139,25 +136,26 @@ xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
 	.ob(s2_mmux2_rhs)
 );
 
-wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub = s2_addsubn_r ? \
-	s2_mmux2_rhs : ~s2_mmux2_rhs;
+wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub = s2_addsubn_r ? s2_mmux2_rhs : ~s2_mmux2_rhs;
 
 // ADDER: Denorm Zero: Bypass Path
 wire [AL_MANSIZE:0]   s2_mmux3_lhs_addsub;
-assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? \
-	{1'b0,s2_mmux_rhs_r} : {1'b0, s2_mmux2_lhs};
+assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? {1'b0,s2_mmux_rhs_r} : {1'b0, s2_mmux2_lhs};
 
 // MULTIPLIER, Part I: Partial Product Generation
-reg [ML_EXPSIZE-1:0]	  s2_ea_r;
-reg [ML_EXPSIZE-1:0]	  s2_eb_r;
-reg [ML_MANSIZE-1:0]	  s2_ma_r;	   // Multiplicant
-
 // reg [(BR4SYM_SIZE*6)-1:0] s2_br4enc_r; // Multiplier Encoded in Radix-4 Booth Symbols
 // always @(posegde clk)     s2_br4enc_r <= s1_br4enc;
 reg [AL_MANSIZE-1:0]		s2_many_dummy_r;
 always @(posedge clk) s2_many_dummy_r <= s1_mulout;
 // Partial Product Generation:
 
+// Multiplier Signal Relay
+reg [AL_EXPSIZE-1:0]	s2_ea_r;
+reg [AL_EXPSIZE-1:0]	s2_eb_r;
+always @(posedge clk) begin
+	s2_ea_r      <= din_uni_a_exp;
+	s2_eb_r      <= din_uni_b_exp;
+end
 
 // ----- PIPELINE STAGE 3 -----
 //
@@ -173,14 +171,14 @@ reg [AL_MANSIZE:0]  s3_rhs_r;
 reg                 s3_addsubn_r;
 
 always @(posedge clk) begin
-	s3_lhs_r     <= s2_mmux2_lhs_addsub;
+	s3_lhs_r     <= s2_mmux3_lhs_addsub;
 	s3_rhs_r     <= s2_mmux3_rhs_addsub;
 	s3_addsubn_r <= s2_addsubn_r;
 end
 
 wire [AL_MANSIZE:0] s3_alu_out;
 
-cla_adder #(.DATA_WID(22)) s3_s4_u_cla(
+  cla_adder #(.DATA_WID(23)) s3_s4_u_cla(
 	.in1(s3_lhs_r),
 	.in2(s3_rhs_r),
 	.carry_in(~s3_addsubn_r),
@@ -188,6 +186,15 @@ cla_adder #(.DATA_WID(22)) s3_s4_u_cla(
 	.carry_out()
 );
 // assign s3_alu_out = s3_lhs_r + s3_rhs_r + ~s3_addsubn_r;
+// Multiplier Signal Relay
+reg [AL_EXPSIZE-1:0]	s3_ea_r;
+reg [AL_EXPSIZE-1:0]	s3_eb_r;
+reg                     s3_ea_gte_eb;
+always @(posedge clk) begin
+	s3_ea_r      <= s2_ea_r;
+	s3_eb_r      <= s2_eb_r;
+	s3_ea_gte_eb <= s2_ea_gte_eb_r;
+end
 
 // ADDER: Denorm Zero: Bypass Path
 wire [AL_MANSIZE:0] s3_mmux_postalu;
@@ -210,23 +217,38 @@ always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
 // UNIFIED OUTPUT STAGE: Zero Detect and EXP Bias Calculation
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s4_opcode_r;
-reg [AL_MANSIZE:0] s4_alu_out_r;
-reg [4:0]          s4_lzd;
+reg [AL_MANSIZE:0]   s4_alu_out_r;
+reg [AL_MANSIZE-1:0] s4_lzdi;
+reg [4:0]            s4_lzd;
 always @(posedge clk) begin
 	s4_alu_out_r <= s3_mmux_postalu;
 	s4_opcode_r  <= s3_opcode_r;
+  /*
 	if(s3_opcode_r == OPC_ADD29i) begin
-		s4_lzd <= s3_mmux_postalu;
+		s4_lzdi <= s3_mmux_postalu;
 	end else if (s3_opcode_r == OPC_MUL16i) begin
-		s4_lzd <= s3_many_dummy_r;
+		s4_lzdi <= s3_many_dummy_r;
 	end
+    */
 end
+  
+  assign s4_lzdi = s3_mmux_postalu;
+  
 // UNIFIED: Leading Zero Detect:
 count_lead_zero #(.W_IN(32)) s4_u_lzd(
-	.in({s4_alu_out_r,{(32-AL_MANSIZE-1){1'b0}}}),
+  .in({s4_lzdi,{(32-AL_MANSIZE){1'b0}}}),
 	.out(s4_lzd)
 );
 
+// Multiplier Signal Relay
+reg [AL_EXPSIZE-1:0]	s4_ea_r;
+reg [AL_EXPSIZE-1:0]	s4_eb_r;
+reg                     s4_ea_gte_eb;
+always @(posedge clk) begin
+	s4_ea_r      <= s3_ea_r;
+	s4_eb_r      <= s3_eb_r;
+	s4_ea_gte_eb <= s3_ea_gte_eb;
+end
 // I guess the last two stage can also be by passed for denorm zero
 // May not be necessary, we'll see when it comes to the multiplier impl.
 
@@ -253,32 +275,48 @@ always @(posedge clk) begin
 	s5_alu_out_r <= s4_alu_out_r;
 	s5_lzd_r     <= s4_lzd;
 end
+  reg [31:0] s5_bsl_out;
 bsl #(.SWIDTH(5)) s5_u_bsl (
-	.din(s5_alu_out_r),
+  .din({2'b0,s5_alu_out_r,7'b0}),
 	.s(s5_lzd_r),
 	.filler(1'b0),
-	.dout(dout_uni_y_man_dn)
+  .dout(s5_bsl_out)
 );
+  assign dout_uni_y_man_dn = s5_bsl_out[31:10];
 
 // UNIFIED: Exponent Adjust
-wire [AL_EXPSIZE-1:0] s5_expadj_mul;
+
+// Signal Relay
+reg [AL_EXPSIZE-1:0]	s5_ea_r;
+reg [AL_EXPSIZE-1:0]	s5_eb_r;
+reg                     s5_ea_gte_eb;
+reg                     s5_ea_lt_eb;
+always @(posedge clk) begin
+	s5_ea_r      <= s4_ea_r;
+	s5_eb_r      <= s4_eb_r;
+	s5_ea_gte_eb <= s4_ea_gte_eb;
+	s5_ea_lt_eb  <= ~s4_ea_gte_eb;
+end
+  wire [AL_EXPSIZE-1:0] s5_expadj_skip = 0;
+
+wire [AL_EXPSIZE:0]   s5_expadj_mul;
 wire [AL_EXPSIZE-1:0] s5_expadj_add;
-reg  [AL_EXPSIZE:0] s5_expadj_final;
-assign s5_expadj_mul = s5_ea_r + s5_eb_r - AL_EXPBIAS + 1;
-assign s5_expadj_add = s5_ea_gte_eb ? \
-	s5_ea_r : s5_eb_r;
+reg  [AL_EXPSIZE:0]   s5_expadj_final;
+assign s5_expadj_mul  = s5_ea_r + s5_eb_r - AL_EXPBIAS + 1;
+assign s5_expadj_add  = s5_ea_gte_eb ?  s5_ea_r : s5_eb_r;
+assign s5_expadj_skip = s5_ea_lt_eb ?  s5_ea_r : s5_eb_r;
 always @* begin
-	if(s5_opcode_r == OPC_ADD29i) begin
-		s5_expadj_final = s5_expadj_add;
-	end else if (s5_opcode_r == OPC_MUL16i) begin
-		s5_expadj_final = s5_expadj_mul;
-	end else begin
-		// Pass Thru
-		s5_expadj_final = 0;
-	end
+  /*
+	if(s5_opcode_r == OPC_ADD29i)				 
+		s5_expadj_final = {1'b0,s5_expadj_add} - s5_lzd_r;
+	else if (s5_opcode_r == OPC_MUL16i) 
+		s5_expadj_final = s5_expadj_mul - s5_lzd_r;
+	else	// Pass Thru
+		s5_expadj_final = {1'b0, s5_expadj_skip};
+	*/
+  s5_expadj_final = {1'b0,s5_expadj_add} - s5_lzd_r;
 end
 
-assign dout_uni_y_exp = {s5_expadj_final - s5_lzd_r}[AL_EXPSIZE-1:0];
+assign dout_uni_y_exp = s5_expadj_final[AL_EXPSIZE-1:0];
 
 endmodule /* FPALU */
-
