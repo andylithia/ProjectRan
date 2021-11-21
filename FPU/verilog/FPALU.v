@@ -76,6 +76,28 @@ xchg #(.DWIDTH(22)) s1_u_manxchg(
 	.ob(s1_mmux_rhs)
 );
 
+// MULTIPLIER: Booth Encoder
+localparam  BR4SYM_SIZE = 3;		// Radix-4 Booth Symbol Size
+localparam  BOOTH_0     = 3'b000;
+localparam  BOOTH_P1    = 3'b001;
+localparam  BOOTH_P2    = 3'b010;
+localparam  BOOTH_N1    = 3'b111;
+localparam  BOOTH_N2    = 3'b110;
+
+wire [ML_MANSIZE+2:0] s1_br4enc_input = \
+	{2'b00, din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE], 1'b0};
+
+wire [(BR4SYM_SIZE*6)-1:0] s1_br4enc;
+
+genvar gi;
+generate
+	for(gi=0;gi<6;gi=gi+1) begin : gen_br4enc
+		booth_enc_r4 s1_u_br4enc(
+			.bin(s1_br4enc_input[2*(gi+1):2*gi]),
+			.br4_out(s1_br4enc[(gi+1)*BR4SYM_SIZE-1,gi*BR4SYM_SIZE])
+		);
+	end
+endgenerate
 
 // ----- PIPELINE STAGE 2 -----
 //
@@ -138,6 +160,16 @@ wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub = s2_addsubn_r ? \
 wire [AL_MANSIZE:0]   s2_mmux3_lhs_addsub;
 assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? \
 	{1'b0,s2_mmux_rhs_r} : {1'b0, s2_mmux2_lhs};
+
+// MULTIPLIER, Part I: Partial Product Generation
+reg [ML_EXPSIZE-1:0]	  s2_ea_r;
+reg [ML_EXPSIZE-1:0]	  s2_eb_r;
+reg [ML_MANSIZE-1:0]	  s2_ma_r;	   // Multiplicant
+reg [(BR4SYM_SIZE*6)-1:0] s2_br4enc_r; // Multiplier Encoded in Radix-4 Booth Symbols
+always @(posegde clk)     s2_br4enc_r <= s1_br4enc;
+
+// Partial Product Generation:
+
 
 // ----- PIPELINE STAGE 3 -----
 //

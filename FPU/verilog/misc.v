@@ -118,4 +118,30 @@ endgenerate
 
 endmodule /* count_lead_zero */
 
+module booth_enc_r4(
+	input      [2:0]	bin,
+	output reg [2:0]	br4_out
+);
+
+localparam  BOOTH_0  = 3'b000;
+localparam  BOOTH_P1 = 3'b001;
+localparam  BOOTH_P2 = 3'b010;
+localparam  BOOTH_N1 = 3'b111;
+localparam  BOOTH_N2 = 3'b110;
+
+always @* begin
+	br4_out = 3'bxxx;
+	case(bin)
+		3'b000: br4_out = BOOTH_0;
+		3'b001: br4_out = BOOTH_P1
+		3'b010: br4_out = BOOTH_P1;
+		3'b011: br4_out = BOOTH_P2;
+		3'b100: br4_out = BOOTH_N2;
+		3'b101: br4_out = BOOTH_N1;
+		3'b110: br4_out = BOOTH_N1;
+		3'b111: br4_out = BOOTH_0;
+	endcase
+end
+
+endmodule
 
