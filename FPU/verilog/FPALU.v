@@ -76,13 +76,12 @@ xchg #(.DWIDTH(22)) s1_u_manxchg(
 	.ob(s1_mmux_rhs)
 );
 
-// MULTIPLIER: Partial Product Generation 
-// The original plan was to use Booth Radix-4 Wallace Tree.
-// It might be an overkill: producing overcomplicated logic, which may increase power
-// Simplify it to wallace tree only, the summation can start in the first cycle.
+// Multiplier Stage 1
+wire [ML_MANSIZE-1:0] s1_wt_lhs = din_uni_a_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
+wire [ML_MANSIZE-1:0] s1_wt_rhs = din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
 
-
-
+// This most definitely need more optimization
+wire 
 
 // ----- PIPELINE STAGE 2 -----
 //
@@ -150,8 +149,10 @@ assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? \
 reg [ML_EXPSIZE-1:0]	  s2_ea_r;
 reg [ML_EXPSIZE-1:0]	  s2_eb_r;
 reg [ML_MANSIZE-1:0]	  s2_ma_r;	   // Multiplicant
-reg [(BR4SYM_SIZE*6)-1:0] s2_br4enc_r; // Multiplier Encoded in Radix-4 Booth Symbols
-always @(posegde clk)     s2_br4enc_r <= s1_br4enc;
+
+// reg [(BR4SYM_SIZE*6)-1:0] s2_br4enc_r; // Multiplier Encoded in Radix-4 Booth Symbols
+// always @(posegde clk)     s2_br4enc_r <= s1_br4enc;
+
 
 // Partial Product Generation:
 
@@ -168,6 +169,7 @@ end
 reg [AL_MANSIZE:0]  s3_lhs_r;
 reg [AL_MANSIZE:0]  s3_rhs_r;
 reg                 s3_addsubn_r;
+
 always @(posedge clk) begin
 	s3_lhs_r     <= s2_mmux2_lhs_addsub;
 	s3_rhs_r     <= s2_mmux3_rhs_addsub;
