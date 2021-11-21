@@ -76,28 +76,13 @@ xchg #(.DWIDTH(22)) s1_u_manxchg(
 	.ob(s1_mmux_rhs)
 );
 
-// MULTIPLIER: Booth Encoder
-localparam  BR4SYM_SIZE = 3;		// Radix-4 Booth Symbol Size
-localparam  BOOTH_0     = 3'b000;
-localparam  BOOTH_P1    = 3'b001;
-localparam  BOOTH_P2    = 3'b010;
-localparam  BOOTH_N1    = 3'b111;
-localparam  BOOTH_N2    = 3'b110;
+// MULTIPLIER: Partial Product Generation 
+// The original plan was to use Booth Radix-4 Wallace Tree.
+// It might be an overkill: producing overcomplicated logic, which may increase power
+// Simplify it to wallace tree only, the summation can start in the first cycle.
 
-wire [ML_MANSIZE+2:0] s1_br4enc_input = \
-	{2'b00, din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE], 1'b0};
 
-wire [(BR4SYM_SIZE*6)-1:0] s1_br4enc;
 
-genvar gi;
-generate
-	for(gi=0;gi<6;gi=gi+1) begin : gen_br4enc
-		booth_enc_r4 s1_u_br4enc(
-			.bin(s1_br4enc_input[2*(gi+1):2*gi]),
-			.br4_out(s1_br4enc[(gi+1)*BR4SYM_SIZE-1,gi*BR4SYM_SIZE])
-		);
-	end
-endgenerate
 
 // ----- PIPELINE STAGE 2 -----
 //
@@ -190,7 +175,15 @@ always @(posedge clk) begin
 end
 
 wire [AL_MANSIZE:0] s3_alu_out;
-assign s3_alu_out = s3_lhs_r + s3_rhs_r + ~s3_addsubn_r;
+
+cla_adder #(.DATA_WID(22)) s3_s4_u_cla(
+	.in1(s3_lhs_r),
+	.in2(s3_rhs_r),
+	.carry_in(~s3_addsubn_r),
+	.sum(s3_alu_out),
+	.carry_out()
+);
+// assign s3_alu_out = s3_lhs_r + s3_rhs_r + ~s3_addsubn_r;
 
 // ADDER: Denorm Zero: Bypass Path
 wire [AL_MANSIZE:0] s3_mmux_postalu;
