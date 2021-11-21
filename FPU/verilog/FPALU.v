@@ -99,6 +99,14 @@ always @(posedge clk) begin
 	s2_addsubn_r       <= s1_addsubn;
 end
 
+// ADDER: LHS Zero Detector
+// This is added to deal with adding with denormalized zero
+// when the zero has a larger exponent
+wire              s2_lhs_is_zero = |s2_mmux_lhs_r;
+wire [OPSIZE-1:0] s2_opcode_mod;
+assign s2_opcode_mod = ((s2_opcode_r==OPC_ADD29i)&&s2_lhs_is_zero) ? \
+	OPC_ADDSKIP : s2_opcode_r;
+
 // ADDER: Shifter
 // When shifting by [MSB], the output becomes zero
 wire [31:0]	s2_bsr_out;
@@ -113,19 +121,23 @@ bsr #(.SWIDTH(AL_EXPSIZE-1)) s2_u_bsr(
 
 // ADDER: Exchanger & Inverter
 //
-wire [AL_MANSIZE:0]   s2_mmux2_lhs;
+wire [AL_MANSIZE-1:0] s2_mmux2_lhs;
 wire [AL_MANSIZE-1:0] s2_mmux2_rhs;
 xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
 	.ia(s2_mmux_lhs_r),
 	.ib(s2_bsr_out_gated),
 	.xchg(~s2_ea_gte_eb_r),
-	.oa(s2_mmux2_lhs[AL_MANSIZE-1:0]),
+	.oa(s2_mmux2_lhs),
 	.ob(s2_mmux2_rhs)
 );
 
-assign s2_mmux2_lhs[AL_MANSIZE] = 1'b0;
 wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub = s2_addsubn_r ? \
 	s2_mmux2_rhs : ~s2_mmux2_rhs;
+
+// ADDER: Denorm Zero: Bypass Path
+wire [AL_MANSIZE:0]   s2_mmux3_lhs_addsub;
+assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? \
+	{1'b0,s2_mmux_rhs_r} : {1'b0, s2_mmux2_lhs};
 
 // ----- PIPELINE STAGE 3 -----
 //
@@ -140,13 +152,17 @@ reg [AL_MANSIZE:0]  s3_lhs_r;
 reg [AL_MANSIZE:0]  s3_rhs_r;
 reg                 s3_addsubn_r;
 always @(posedge clk) begin
-	s3_lhs_r     <= s2_mmux2_lhs;
+	s3_lhs_r     <= s2_mmux2_lhs_addsub;
 	s3_rhs_r     <= s2_mmux3_rhs_addsub;
 	s3_addsubn_r <= s2_addsubn_r;
 end
 
 wire [AL_MANSIZE:0] s3_alu_out;
 assign s3_alu_out = s3_lhs_r + s3_rhs_r + ~s3_addsubn_r;
+
+// ADDER: Denorm Zero: Bypass Path
+wire [AL_MANSIZE:0] s3_mmux_postalu;
+assign s3_mmux_postalu = (s3_opcode_r==OPC_ADDSKIP) ? s3_lhs_r : s3_alu_out;
 
 // ----- PIPELINE STAGE 4 -----
 // 
@@ -169,13 +185,16 @@ end
 reg [AL_MANSIZE:0] s4_alu_out_r;
 reg [4:0]          s4_lzd;
 always @(posedge clk) begin
-	s4_alu_out_r <= s3_alu_out;
+	s4_alu_out_r <= s3_mmux_postalu;
 end
 // ADDER: Leading Zero Detect:
 count_lead_zero #(.W_IN(32)) s4_u_lzd(
 	.in({s4_alu_out_r,{(32-AL_MANSIZE-1){1'b0}}}),
 	.out(s4_lzd)
 );
+
+// I guess the last two stage can also be by passed for denorm zero
+// May not be necessary, we'll see when it comes to the multiplier impl.
 
 // We don't deal with zeros here:
 //  Because the mantissa within the ALU is always DENORMALIZED,
