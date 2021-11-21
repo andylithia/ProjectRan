@@ -81,7 +81,7 @@ wire [ML_MANSIZE-1:0] s1_wt_lhs = din_uni_a_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MA
 wire [ML_MANSIZE-1:0] s1_wt_rhs = din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
 
 // This most definitely need more optimization
-wire 
+wire [AL_MANSIZE-1:0] s1_mulout = s1_wt_lhs * s1_wt_rhs; 
 
 // ----- PIPELINE STAGE 2 -----
 //
@@ -152,8 +152,8 @@ reg [ML_MANSIZE-1:0]	  s2_ma_r;	   // Multiplicant
 
 // reg [(BR4SYM_SIZE*6)-1:0] s2_br4enc_r; // Multiplier Encoded in Radix-4 Booth Symbols
 // always @(posegde clk)     s2_br4enc_r <= s1_br4enc;
-
-
+reg [AL_MANSIZE-1:0]		s2_many_dummy_r;
+always @(posedge clk) s2_many_dummy_r <= s1_mulout;
 // Partial Product Generation:
 
 
@@ -191,6 +191,9 @@ cla_adder #(.DATA_WID(22)) s3_s4_u_cla(
 wire [AL_MANSIZE:0] s3_mmux_postalu;
 assign s3_mmux_postalu = (s3_opcode_r==OPC_ADDSKIP) ? s3_lhs_r : s3_alu_out;
 
+reg [AL_MANSIZE-1:0]	s3_many_dummy_r;
+always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
+
 // ----- PIPELINE STAGE 4 -----
 // 
 // General Note for S4 and S5:
@@ -213,6 +216,11 @@ reg [AL_MANSIZE:0] s4_alu_out_r;
 reg [4:0]          s4_lzd;
 always @(posedge clk) begin
 	s4_alu_out_r <= s3_mmux_postalu;
+	if(s3_opcode_r == OPC_ADD29i) begin
+		s4_lzd <= s3_mmux_postalu;
+	end else if (s3_opcode_r == OPC_MUL16i) begin
+		s4_lzd <= s3_many_dummy_r;
+	end
 end
 // ADDER: Leading Zero Detect:
 count_lead_zero #(.W_IN(32)) s4_u_lzd(
@@ -239,7 +247,7 @@ always @(posedge clk) begin
 	s5_opcode_r <= s4_opcode_r;
 end
 
-// ADDER: Final Shifter
+// UNIFIED: Final Shifter
 reg [AL_MANSIZE:0] s5_alu_out_r;
 reg [4:0]          s5_lzd_r;
 always @(posedge clk) begin
