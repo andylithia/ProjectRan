@@ -32,11 +32,13 @@ module FPALU (
 );
 // ----- CONSTANTS -----
 localparam ML_MANSIZE = 11;
-localparam ML_EXPSIZE = 3;
+localparam ML_EXPSIZE = 5;
+localparam ML_EXPBIAS = 2**(ML_EXPSIZE-1)-1;
 localparam ML_FPSIZE  = 1 + ML_EXPSIZE + ML_MANSIZE;
 localparam AL_MANSIZE = 2 * ML_MANSIZE;
 localparam AL_EXPSIZE = 1 + ML_EXPSIZE;
 localparam AL_FPSIZE  = 1 + AL_EXPSIZE + AL_MANSIZE;
+localparam AL_EXPBIAS = 2**(AL_EXPSIZE-1)-1;
 
 localparam OPSIZE = 2;
 
@@ -208,21 +210,18 @@ always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
 // UNIFIED OUTPUT STAGE: Zero Detect and EXP Bias Calculation
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s4_opcode_r;
-always @(posedge clk) begin
-	s4_opcode_r <= s3_opcode_r;
-end
-
 reg [AL_MANSIZE:0] s4_alu_out_r;
 reg [4:0]          s4_lzd;
 always @(posedge clk) begin
 	s4_alu_out_r <= s3_mmux_postalu;
+	s4_opcode_r  <= s3_opcode_r;
 	if(s3_opcode_r == OPC_ADD29i) begin
 		s4_lzd <= s3_mmux_postalu;
 	end else if (s3_opcode_r == OPC_MUL16i) begin
 		s4_lzd <= s3_many_dummy_r;
 	end
 end
-// ADDER: Leading Zero Detect:
+// UNIFIED: Leading Zero Detect:
 count_lead_zero #(.W_IN(32)) s4_u_lzd(
 	.in({s4_alu_out_r,{(32-AL_MANSIZE-1){1'b0}}}),
 	.out(s4_lzd)
@@ -262,7 +261,24 @@ bsl #(.SWIDTH(5)) s5_u_bsl (
 );
 
 // UNIFIED: Exponent Adjust
+wire [AL_EXPSIZE-1:0] s5_expadj_mul;
+wire [AL_EXPSIZE-1:0] s5_expadj_add;
+reg  [AL_EXPSIZE:0] s5_expadj_final;
+assign s5_expadj_mul = s5_ea_r + s5_eb_r - AL_EXPBIAS + 1;
+assign s5_expadj_add = s5_ea_gte_eb ? \
+	s5_ea_r : s5_eb_r;
+always @* begin
+	if(s5_opcode_r == OPC_ADD29i) begin
+		s5_expadj_final = s5_expadj_add;
+	end else if (s5_opcode_r == OPC_MUL16i) begin
+		s5_expadj_final = s5_expadj_mul;
+	end else begin
+		// Pass Thru
+		s5_expadj_final = 0;
+	end
+end
 
+assign dout_uni_y_exp = {s5_expadj_final - s5_lzd_r}[AL_EXPSIZE-1:0];
 
 endmodule /* FPALU */
 
