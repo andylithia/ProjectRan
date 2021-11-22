@@ -163,7 +163,9 @@ end
 // SEGMENT 1. Pipeline Signal Relay
 reg [OPSIZE-1:0]     s3_opcode_r;
 always @(posedge clk) begin
-	s3_opcode_r <= s2_opcode_r;
+	if(s2_lhs_is_zero&&(s2_opcode_r==OPC_ADD29i)) 
+                       s3_opcode_r <= OPC_ADDSKIP;
+	else               s3_opcode_r <= s2_opcode_r;
 end
 
 // ADDER: Summing (CLA)
@@ -190,11 +192,11 @@ wire [AL_MANSIZE:0] s3_alu_out;
 // Multiplier Signal Relay
 reg [AL_EXPSIZE-1:0]	s3_ea_r;
 reg [AL_EXPSIZE-1:0]	s3_eb_r;
-reg                     s3_ea_gte_eb;
+reg                     s3_ea_gte_eb_r;
 always @(posedge clk) begin
-	s3_ea_r      <= s2_ea_r;
-	s3_eb_r      <= s2_eb_r;
-	s3_ea_gte_eb <= s2_ea_gte_eb_r;
+	s3_ea_r        <= s2_ea_r;
+	s3_eb_r        <= s2_eb_r;
+	s3_ea_gte_eb_r <= s2_ea_gte_eb_r;
 end
 
 // ADDER: Denorm Zero: Bypass Path
@@ -219,7 +221,7 @@ always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s4_opcode_r;
 reg [AL_MANSIZE:0]   s4_alu_out_r;
-reg [AL_MANSIZE-1:0] s4_lzdi;
+  reg [AL_MANSIZE:0]  s4_lzdi;
 reg [4:0]            s4_lzd;
 always @(posedge clk) begin
 	s4_alu_out_r <= s3_mmux_postalu;
@@ -235,23 +237,21 @@ end
   
   assign s4_lzdi = s4_alu_out_r;
   
-  wire [4:0] s4_lzd_raw;
-  assign s4_lzd = s4_lzd_raw + 2;
   
 // UNIFIED: Leading Zero Detect:
 count_lead_zero #(.W_IN(32)) s4_u_lzd(
-  .in({s4_lzdi,{(32-AL_MANSIZE){1'b0}}}),
-  .out(s4_lzd_raw)
+  .in({s4_lzdi,{(32-AL_MANSIZE-1){1'b0}}}),
+  .out(s4_lzd)
 );
 
 // Multiplier Signal Relay
 reg [AL_EXPSIZE-1:0]	s4_ea_r;
 reg [AL_EXPSIZE-1:0]	s4_eb_r;
-reg                     s4_ea_gte_eb;
+reg                     s4_ea_gte_eb_r;
 always @(posedge clk) begin
-	s4_ea_r      <= s3_ea_r;
-	s4_eb_r      <= s3_eb_r;
-	s4_ea_gte_eb <= s3_ea_gte_eb;
+	s4_ea_r        <= s3_ea_r;
+	s4_eb_r        <= s3_eb_r;
+	s4_ea_gte_eb_r <= s3_ea_gte_eb_r;
 end
 // I guess the last two stage can also be by passed for denorm zero
 // May not be necessary, we'll see when it comes to the multiplier impl.
@@ -281,7 +281,7 @@ always @(posedge clk) begin
 end
   reg [31:0] s5_bsl_out;
 bsl #(.SWIDTH(5)) s5_u_bsl (
-  .din({2'b0,s5_alu_out_r,7'b0}),
+  .din({s5_alu_out_r,9'b0}),
 	.s(s5_lzd_r),
 	.filler(1'b0),
   .dout(s5_bsl_out)
@@ -294,21 +294,19 @@ bsl #(.SWIDTH(5)) s5_u_bsl (
 reg [AL_EXPSIZE-1:0]	s5_ea_r;
 reg [AL_EXPSIZE-1:0]	s5_eb_r;
 reg                     s5_ea_gte_eb_r;
-reg                     s5_ea_lt_eb_r;
 always @(posedge clk) begin
 	s5_ea_r        <= s4_ea_r;
 	s5_eb_r        <= s4_eb_r;
-	s5_ea_gte_eb_r <= s4_ea_gte_eb;
-	s5_ea_lt_eb_r  <= ~s4_ea_gte_eb;
+	s5_ea_gte_eb_r <= s4_ea_gte_eb_r;
 end
-  wire [AL_EXPSIZE-1:0] s5_expadj_skip = 0;
-
+wire                  s5_ea_lt_eb = ~s5_ea_gte_eb_r;
+wire [AL_EXPSIZE-1:0] s5_expadj_skip = 0;
 wire [AL_EXPSIZE:0]   s5_expadj_mul;
 wire [AL_EXPSIZE-1:0] s5_expadj_add;
 reg  [AL_EXPSIZE:0]   s5_expadj_final;
 assign s5_expadj_mul  = s5_ea_r + s5_eb_r - AL_EXPBIAS + 1;
 assign s5_expadj_add  = s5_ea_gte_eb_r ?  s5_ea_r : s5_eb_r;
-assign s5_expadj_skip = s5_ea_lt_eb_r  ?  s5_eb_r : s5_ea_r;
+assign s5_expadj_skip = s5_ea_lt_eb    ?  s5_eb_r : s5_ea_r;
 always @* begin
   /*
 	if(s5_opcode_r == OPC_ADD29i)				 
