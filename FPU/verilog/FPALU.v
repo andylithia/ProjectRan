@@ -298,10 +298,12 @@ end
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s4_opcode_r;
 reg [AL_MANSIZE:0]   s4_alu_out_r;
-  reg [AL_MANSIZE:0]  s4_lzdi;
 reg [4:0]            s4_lzd;
 always @(posedge clk) begin
-	s4_alu_out_r <= s3_mmux_postalu;
+	if(s3_opcode_r == OPC_ADD29i) 
+		s4_alu_out_r <= s3_mmux_postalu;
+	else if(s3_opcode_r == OPC_MUL16i) 
+		s4_alu_out_r <= s3_mulout;
 	s4_opcode_r  <= s3_opcode_r;
   /*
 	if(s3_opcode_r == OPC_ADD29i) begin
@@ -312,9 +314,8 @@ always @(posedge clk) begin
     */
 end
   
-  assign s4_lzdi = s4_alu_out_r;
   
-  
+wire [AL_MANSIZE:0]  s4_lzdi = s4_alu_out_r;
 // UNIFIED: Leading Zero Detect:
 count_lead_zero #(.W_IN(32)) s4_u_lzd(
   .in({s4_lzdi,{(32-AL_MANSIZE-1){1'b0}}}),
