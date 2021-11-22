@@ -97,11 +97,11 @@ generate
 	for(gi=0;gi<6;gi=gi+1) begin : gen_br4enc
 		booth_enc_r4 s1_u_br4enc (
 			.bin(s1_br4enc_input[2*(gi+1):2*gi]),
-			.br4_out(s1_br4enc[(gi+1)*BR4SYM_SIZE-1:gi*BR4SYM_SIZE])
+			.br4_out(s1_br4enc[(gi+1)*3-1:gi*3])
 		);
 		booth_ppgen_r4 s1_u_br4ppgen (
 			.a(s1_mana),
-			.br4(s1_br4enc[(gi+1)*BR4SYM_SIZE-1:gi*BR4SYM_SIZE]),
+			.br4(s1_br4enc[(gi+1)*3-1:gi*3]),
 			.o(s1_br4_pp[(ML_MANSIZE+1)*(gi+1)-1:(ML_MANSIZE+1)*(gi)]),
 			.s(s1_br4_s[gi])
 		);
@@ -194,8 +194,8 @@ wire [11:0] pp2 = s2_br4_pp_r[12*3-1:12*2];
 wire [11:0] pp3 = s2_br4_pp_r[12*4-1:12*3];
 wire [11:0] pp4 = s2_br4_pp_r[12*5-1:12*4];
 wire [11:0] pp5 = s2_br4_pp_r[12*6-1:12*5];
-reg [15:0]        s2_ps0;
-reg [15:0]        s2_ps1;
+reg [16:0]        s2_ps0;
+reg [16:0]        s2_ps1;
 wire              s2_s2 = s2_br4_s_r[2];
 wire              s2_s5 = s2_br4_s_r[5];
 always @* begin
@@ -205,7 +205,7 @@ always @* begin
 
 	s2_ps1 =          {{5{s2_br4_s_r[3]}},pp3};
 	s2_ps1 = s2_ps1 + {{3{s2_br4_s_r[4]}},pp4,1'b0,s2_br4_s_r[3]};
-	s2_ps1 = s2_ps1 + {   s2_br4_s_r[5],  pp5,1'b0,s2_br4_s_r[4], 2'b0};
+	s2_ps1 = s2_ps1 + {{1{s2_br4_s_r[5]}},pp5,1'b0,s2_br4_s_r[4], 2'b0};
 	/*
 	s2_ps1 =          {{3{s2_br4_s_r[3]}},pp3};
 	s2_ps1 = s2_ps1 + {{2{s2_br4_s_r[4]}},pp4,s2_br4_s_r[3]};
@@ -264,8 +264,8 @@ always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
 
 // BR4: Final Summation
 reg [21:0]        s3_mulout;
-reg [15:0]        s3_ps0_r;
-reg [15:0]        s3_ps1_r;
+reg [16:0]        s3_ps0_r;
+reg [16:0]        s3_ps1_r;
 reg               s3_s2_r;
 reg               s3_s5_r;
 always @(posedge clk) begin
@@ -276,7 +276,7 @@ always @(posedge clk) begin
 end
 
 always @* begin
-	s3_mulout =             {{6{s3_ps0_r[15]}}, s3_ps0_r               };
+	s3_mulout =             {{5{s3_ps0_r[16]}}, s3_ps0_r               };
 	s3_mulout = s3_mulout + {                  s3_ps1_r, 1'b0, s3_s2_r, 4'b0};
 	s3_mulout = s3_mulout + {11'b0,        s3_s5_r,           10'b0};
 end

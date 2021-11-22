@@ -188,18 +188,18 @@ module booth_ppgen_r4 #(
 )(
 	input [DWIDTH-1:0]			a,
 	input [2:0]					br4,
-	output reg [DWIDTH:0]		o,
+	output reg [DWIDTH+1:0]		o,
 	output                      s
 );
-	assign s = o[2];
+	assign s = br4[2];
 	always @* begin
 		o = {(DWIDTH+1){1'bx}};
 		case(br4)
 		3'b000: o = 0;
-		3'b001:	o = {1'b0,a};
-		3'b010: o = {a,1'b0};
-		3'b111:	o = {1'b1,~a};
-		3'b110: o = {~a,1'b1};
+		3'b001:	o = {2'b0,a};
+		3'b010: o = {1'b0,a,1'b0};
+		3'b111:	o = {2'b1,~a};
+		3'b110: o = {1'b1,~a,1'b1};
 		endcase
 	end
 endmodule /* booth_ppgen_r4 */
