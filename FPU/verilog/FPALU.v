@@ -78,11 +78,36 @@ xchg #(.DWIDTH(22)) s1_u_manxchg(
 );
 
 // Multiplier Stage 1
-wire [ML_MANSIZE-1:0] s1_wt_lhs = din_uni_a_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
-wire [ML_MANSIZE-1:0] s1_wt_rhs = din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
+// wire [ML_MANSIZE-1:0] s1_wt_lhs = din_uni_a_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
+// wire [ML_MANSIZE-1:0] s1_wt_rhs = din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
 
 // This most definitely need more optimization
-wire [AL_MANSIZE-1:0] s1_mulout = s1_wt_lhs * s1_wt_rhs; 
+// wire [AL_MANSIZE-1:0] s1_mulout = s1_wt_lhs * s1_wt_rhs; 
+// MULTIPLIER: Booth Encoder
+localparam  BR4SYM_SIZE = 3;		// Radix-4 Booth Symbol Size
+
+wire [ML_MANSIZE+2:0] s1_br4enc_input =
+	{2'b00, din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE], 1'b0};
+wire [ML_MANSIZE-1:0] s1_mana = din_uni_a_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
+wire [(BR4SYM_SIZE*6)-1:0] 		s1_br4enc;
+wire [(ML_MANSIZE+1)*6-1:0]		s1_br4_pp;
+wire [5:0]                      s1_br4_s;
+genvar gi;
+generate
+	for(gi=0;gi<6;gi=gi+1) begin : gen_br4enc
+		booth_enc_r4 s1_u_br4enc (
+			.bin(s1_br4enc_input[2*(gi+1):2*gi]),
+			.br4_out(s1_br4enc[(gi+1)*BR4SYM_SIZE-1:gi*BR4SYM_SIZE])
+		);
+		booth_ppgen_r4 s1_u_br4ppgen (
+			.a(s1_mana),
+			.br4(s1_br4enc[(gi+1)*BR4SYM_SIZE-1:gi*BR4SYM_SIZE]),
+			.o(s1_br4_pp[(ML_MANSIZE+1)*(gi+1)-1:(ML_MANSIZE+1)*(gi)]),
+			.s(s1_br4_s[gi])
+		);
+	end
+endgenerate
+
 
 // ----- PIPELINE STAGE 2 -----
 //
@@ -147,15 +172,40 @@ assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? {1'b0,s2_mmux_rhs_r} : {1'b0, s2
 // reg [(BR4SYM_SIZE*6)-1:0] s2_br4enc_r; // Multiplier Encoded in Radix-4 Booth Symbols
 // always @(posegde clk)     s2_br4enc_r <= s1_br4enc;
 reg [AL_MANSIZE-1:0]		s2_many_dummy_r;
-always @(posedge clk) s2_many_dummy_r <= s1_mulout;
+always @(posedge clk) s2_many_dummy_r <= 0;
 // Partial Product Generation:
 
 // Multiplier Signal Relay
-reg [AL_EXPSIZE-1:0]	s2_ea_r;
-reg [AL_EXPSIZE-1:0]	s2_eb_r;
+reg [AL_EXPSIZE-1:0]	        s2_ea_r;
+reg [AL_EXPSIZE-1:0]	        s2_eb_r;
+reg [(ML_MANSIZE+1)*6-1:0]		s2_br4_pp_r;
+reg [5:0]                       s2_br4_s_r;
 always @(posedge clk) begin
 	s2_ea_r      <= din_uni_a_exp;
 	s2_eb_r      <= din_uni_b_exp;
+	s2_br4_pp_r  <= s1_br4_pp;
+	s2_br4_s_r   <= s1_br4_s;
+end
+
+// Booth Radix-4 Partial Summation
+wire [11:0] pp0 = s2_br4_pp_r[12*1-1:12*0];
+wire [11:0] pp1 = s2_br4_pp_r[12*2-1:12*1];
+wire [11:0] pp2 = s2_br4_pp_r[12*3-1:12*2];
+wire [11:0] pp3 = s2_br4_pp_r[12*4-1:12*3];
+wire [11:0] pp4 = s2_br4_pp_r[12*5-1:12*4];
+wire [11:0] pp5 = s2_br4_pp_r[12*6-1:12*5];
+reg [14:0]        s2_ps0;
+reg [14:0]        s2_ps1;
+reg               s2_s2 = s2_br4_s_r[2];
+reg               s2_s5 = s2_br4_s_r[5];
+always @* begin
+	s2_ps0 =          {{3{s2_br4_s_r[0]}},pp0};
+	s2_ps0 = s2_ps0 + {{2{s2_br4_s_r[1]}},pp1,s2_br4_s_r[0]};
+	s2_ps0 = s2_ps0 + {   s2_br4_s_r[2],  pp2,s2_br4_s_r[1]};
+	
+	s2_ps1 =          {{3{s2_br4_s_r[3]}},pp3};
+	s2_ps1 = s2_ps1 + {{2{s2_br4_s_r[4]}},pp4,s2_br4_s_r[3]};
+	s2_ps1 = s2_ps1 + {   s2_br4_s_r[5],  pp5,s2_br4_s_r[4]};
 end
 
 // ----- PIPELINE STAGE 3 -----
@@ -181,7 +231,7 @@ end
 
 wire [AL_MANSIZE:0] s3_alu_out;
 
-  cla_adder #(.DATA_WID(23)) s3_s4_u_cla(
+  cla_adder #(.DATA_WID(AL_MANSIZE+1)) s3_s4_u_cla(
 	.in1(s3_lhs_r),
 	.in2(s3_rhs_r),
 	.carry_in(~s3_addsubn_r),
@@ -205,6 +255,29 @@ assign s3_mmux_postalu = (s3_opcode_r==OPC_ADDSKIP) ? s3_lhs_r : s3_alu_out;
 
 reg [AL_MANSIZE-1:0]	s3_many_dummy_r;
 always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
+
+
+// BR4: Final Summation
+
+reg [21:0]        s3_mulout;
+reg [14:0]        s3_ps0_r;
+reg [14:0]        s3_ps1_r;
+reg               s3_s2_r;
+reg               s3_s5_r;
+always @(posedge clk) begin
+	s3_ps0_r <= s2_ps0;
+	s3_ps1_r <= s2_ps1;
+	s3_s2_r  <= s2_s2;
+	s3_s5_r  <= s2_s5;
+end
+
+always @* begin
+	s3_mulout =             {{6{s3_s2_r}}, s3_ps0_r               };
+	s3_mulout = s3_mulout + {s3_s5_r,      s3_ps1_r, s3_s2_r, 5'b0};
+	s3_mulout = s3_mulout + {15'b0,        s3_s5_r,           6'b0};
+end
+
+
 
 // ----- PIPELINE STAGE 4 -----
 // 
@@ -281,12 +354,12 @@ always @(posedge clk) begin
 end
   reg [31:0] s5_bsl_out;
 bsl #(.SWIDTH(5)) s5_u_bsl (
-  .din({s5_alu_out_r,9'b0}),
+  .din({9'b0,s5_alu_out_r}),
 	.s(s5_lzd_r),
 	.filler(1'b0),
   .dout(s5_bsl_out)
 );
-  assign dout_uni_y_man_dn = s5_bsl_out[31:10];
+  assign dout_uni_y_man_dn = s5_bsl_out[26-:22];
 
 // UNIFIED: Exponent Adjust
 
@@ -316,7 +389,7 @@ always @* begin
 	else	// Pass Thru
 		s5_expadj_final = {1'b0, s5_expadj_skip};
 	*/
-  s5_expadj_final = {1'b0,s5_expadj_add} - s5_lzd_r;
+  s5_expadj_final = {1'b0,s5_expadj_add} - s5_lzd_r - 1;
 end
 
   assign dout_uni_y_exp = s5_expadj_final[AL_EXPSIZE-1:0];
