@@ -194,18 +194,23 @@ wire [11:0] pp2 = s2_br4_pp_r[12*3-1:12*2];
 wire [11:0] pp3 = s2_br4_pp_r[12*4-1:12*3];
 wire [11:0] pp4 = s2_br4_pp_r[12*5-1:12*4];
 wire [11:0] pp5 = s2_br4_pp_r[12*6-1:12*5];
-reg [14:0]        s2_ps0;
-reg [14:0]        s2_ps1;
-reg               s2_s2 = s2_br4_s_r[2];
-reg               s2_s5 = s2_br4_s_r[5];
+reg [15:0]        s2_ps0;
+reg [15:0]        s2_ps1;
+wire              s2_s2 = s2_br4_s_r[2];
+wire              s2_s5 = s2_br4_s_r[5];
 always @* begin
-	s2_ps0 =          {{3{s2_br4_s_r[0]}},pp0};
-	s2_ps0 = s2_ps0 + {{2{s2_br4_s_r[1]}},pp1,s2_br4_s_r[0]};
-	s2_ps0 = s2_ps0 + {   s2_br4_s_r[2],  pp2,s2_br4_s_r[1]};
-	
+	s2_ps0 =          {{5{s2_br4_s_r[0]}},pp0};
+	s2_ps0 = s2_ps0 + {{3{s2_br4_s_r[1]}},pp1,1'b0,s2_br4_s_r[0]};
+	s2_ps0 = s2_ps0 + {{1{s2_br4_s_r[2]}},pp2,1'b0,s2_br4_s_r[1], 2'b0};
+
+	s2_ps1 =          {{5{s2_br4_s_r[3]}},pp3};
+	s2_ps1 = s2_ps1 + {{3{s2_br4_s_r[4]}},pp4,1'b0,s2_br4_s_r[3]};
+	s2_ps1 = s2_ps1 + {   s2_br4_s_r[5],  pp5,1'b0,s2_br4_s_r[4], 2'b0};
+	/*
 	s2_ps1 =          {{3{s2_br4_s_r[3]}},pp3};
 	s2_ps1 = s2_ps1 + {{2{s2_br4_s_r[4]}},pp4,s2_br4_s_r[3]};
 	s2_ps1 = s2_ps1 + {   s2_br4_s_r[5],  pp5,s2_br4_s_r[4]};
+	*/
 end
 
 // ----- PIPELINE STAGE 3 -----
@@ -258,10 +263,9 @@ always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
 
 
 // BR4: Final Summation
-
 reg [21:0]        s3_mulout;
-reg [14:0]        s3_ps0_r;
-reg [14:0]        s3_ps1_r;
+reg [15:0]        s3_ps0_r;
+reg [15:0]        s3_ps1_r;
 reg               s3_s2_r;
 reg               s3_s5_r;
 always @(posedge clk) begin
@@ -272,9 +276,9 @@ always @(posedge clk) begin
 end
 
 always @* begin
-	s3_mulout =             {{6{s3_s2_r}}, s3_ps0_r               };
-	s3_mulout = s3_mulout + {s3_s5_r,      s3_ps1_r, s3_s2_r, 5'b0};
-	s3_mulout = s3_mulout + {15'b0,        s3_s5_r,           6'b0};
+	s3_mulout =             {{6{s3_ps0_r[15]}}, s3_ps0_r               };
+	s3_mulout = s3_mulout + {                  s3_ps1_r, 1'b0, s3_s2_r, 4'b0};
+	s3_mulout = s3_mulout + {11'b0,        s3_s5_r,           10'b0};
 end
 
 
