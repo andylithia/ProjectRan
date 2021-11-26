@@ -5,27 +5,6 @@
 // TODO: 
 // 1. Add Latches to minimize useless flipping
 
-//            FORMAT  SIGN  EXP  MANTISSA  WIDTH
-//  RAW IEEE  FP16    1     5    10        16
-//  INPUT     FP16i   1     5    11        17
-//  POST MUL  FP29i   1     6    22        29
-//  POST ACC  FP29i   1     6    22        29
-//  OUTPUT    FP16    1     5    10        16 
-//
-// Adder:
-// Addsub Control Signals:
-//          ea > eb     ea < eb
-//            SRB         SRA
-// sa sb  sy    my     sy    my
-//  0  0   0  ma + mb   0  mb + ma
-//  0  1   0  ma - mb   1  mb - ma
-//  1  0   1  ma - mb   0  mb - ma
-//  1  1   1  ma + mb   1  mb + ma
-
-// Multiply:
-// MANA is FP16 FIR Input:		   Regular FP16, Most likely Normalized
-// MANB is Coefficient Input: 	   Always Denormalized
-// MANY is FIR_input.*Coefficient: Always Denormalized
 
 module FPALU (
 	input           rst_n,
@@ -45,6 +24,10 @@ module FPALU (
 	output [21:0]   dout_uni_y_man_dn
 
 );
+
+// This option adds extra real number registers to assist debugging
+`define DEBUGINFO
+
 // ----- CONSTANTS -----
 localparam ML_MANSIZE = 11;
 localparam ML_EXPSIZE = 5;
@@ -76,14 +59,34 @@ end
 // Input Wiring
 wire [AL_MANSIZE-1:0]	din_AL_mana = din_uni_a_man_dn;	// 22b Denormalized
 wire [AL_MANSIZE-1:0]	din_AL_manb = din_uni_b_man_dn;	// 22b Denormalized
-wire [ML_EXPSIZE-1:0]   din_ML_expa = din_uni_a_exp[ML_EXPSIZE-1:0];
-wire [ML_EXPSIZE-1:0]   din_ML_expb = din_uni_b_exp[ML_EXPSIZE-1:0];
+wire [ML_EXPSIZE:0]     din_ML_expa = {1'b0,din_uni_a_exp[ML_EXPSIZE-1:0]};
+wire [ML_EXPSIZE:0]     din_ML_expb = {1'b0,din_uni_b_exp[ML_EXPSIZE-1:0]};
 
 // Dealing with denorm number
-wire s1_ml_ea_is_denorm = !(|din_ML_expa);
-wire s1_ml_eb_is_denorm = !(|din_ML_expb);
-wire [ML_MANSIZE-1:0]   din_ML_mana = s1_ml_ea_is_denorm ? {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0} : {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
-wire [ML_MANSIZE-1:0]   din_ML_manb = {din_uni_b_man_dn[ML_MANSIZE-2:0],1'b0};
+wire s1_ml_ea_is_denorm = (din_ML_expa == ML_EXPBIAS);
+// wire s1_ml_eb_is_denorm = (din_ML_expb == ML_EXPBIAS);
+reg [ML_MANSIZE-1:0]  din_ML_mana;
+reg [ML_MANSIZE-1:0]  din_ML_manb;
+always @* begin
+	if(s1_ml_ea_is_denorm)
+		din_ML_mana = {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0};
+	else 
+		din_ML_mana = {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
+	din_ML_manb = din_uni_b_man_dn[ML_MANSIZE-1:0];	// Always Denorm
+end
+
+`ifdef DEBUGINFO
+	real din_a_real;	// Can be Normalized
+	real din_b_real;	// Always Denorm
+	real dout_y_real;	// Always Denorm
+	real dout_y_expected;
+	always @* begin
+		din_a_real  = din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
+		din_b_real  = {1'b1,din_uni_a_man_dn[ML_MANSIZE-1:0]} * 2.0**(-11.0) * 2**(din_ML_expb-15.0);
+		dout_y_real = dout_uni_y_man_dn * 2.0**(-22.0) * 2.0**(dout_uni_y_exp-31.0);
+		dout_y_expected = din_a_real * din_b_real;
+	end
+`endif /* DEBUGINFO */
 
 // ACHTUNG:
 // You MUST deal with zeros somewhere, maybe here.
@@ -141,8 +144,13 @@ reg [AL_EXPSIZE-1:0] s2_expa_r;		// Save Exponents for S5
 reg [AL_MANSIZE-1:0] s2_expb_r;		// /
 always @(posedge clk) begin
 	s2_opcode_r <= s1_opcode;
-	s2_expa_r   <= din_uni_a_exp;
-	s2_expb_r   <= din_uni_b_exp;
+	if(s1_opcode == OPC_ADD29i) begin
+		s2_expa_r   <= din_uni_a_exp;
+		s2_expb_r   <= din_uni_b_exp;
+	end else if(s1_opcode == OPC_MUL16i) begin
+		s2_expa_r   <= din_ML_expa;
+		s2_expb_r   <= din_ML_expb;
+	end
 end
 
 // ADDER: Signal Relay
@@ -347,7 +355,7 @@ end
 // aluout is 23bits
 // UNIFIED: Leading Zero Detect:
 wire [4:0]  s4_lzd;		// 
-wire [31:0] s4_lzdi = {s4_many_r,{(32-AL_MANSIZE-1){1'b0}}};
+wire [31:0] s4_lzdi = {s4_many_r,10'b0};
 count_lead_zero #(.W_IN(32)) s4_u_lzd(.in(s4_lzdi), .out(s4_lzd));
 
 // ----- PIPELINE STAGE 5 -----
@@ -374,13 +382,13 @@ always @* begin
 		s5_shiftbias = s5_lzd_r;		// Denorm (Default)
 end
 
-wire [31:0]        s5_bsl_out;						// The final shifter
-assign dout_uni_y_man_dn = s5_bsl_out[32 -: 22];	// Truncate to 22 bits
+wire [31:0]        s5_bsl_out;					// The final shifter
+assign dout_uni_y_man_dn = {s5_bsl_out[21:0]};	// Truncate to 22 bits
 bsl #(.SWIDTH(5)) s5_u_bsl (
-	.din    ({9'b0,s5_many_r}),
-	.s      (s5_shiftbias    ),
-	.filler (1'b0            ),
-	.dout   (s5_bsl_out      )
+	.din    ({10'b0,s5_many_r}),
+	.s      (s5_shiftbias     ),
+	.filler (1'b0             ),
+	.dout   (s5_bsl_out       )
 );
 
 // UNIFIED: Exponent Adjust
@@ -400,7 +408,7 @@ wire [AL_EXPSIZE:0]   s5_expadj_add;
 reg  [AL_EXPSIZE:0]   s5_expadj_final;
 
 // MULTIPLY: Re-bias exponents to AL_EXPBIAS
-assign s5_expadj_mul  = s5_ea_r + s5_eb_r - 2*ML_EXPBIAS + AL_EXPBIAS + 1;
+assign s5_expadj_mul  = {1'b0,s5_ea_r} + {1'b0,s5_eb_r} - 2*ML_EXPBIAS + 2;
 // ADDER: Use the larger exponent
 assign s5_expadj_add  = s5_ea_gte_eb_r ?  {1'b0,s5_ea_r} : {1'b0,s5_eb_r};
 always @* begin
@@ -416,7 +424,9 @@ end
 
 // TODO: Deal with exponent overflow using the extra bit
 
+wire [AL_EXPSIZE:0] s5_expadj_final1 = s5_expadj_final + AL_EXPBIAS;	// Adjust Bias
+wire                s5_expadj_ovflow = s5_expadj_final1[AL_EXPSIZE];	// Should Never be 1
+assign dout_uni_y_exp = s5_expadj_final1[AL_EXPSIZE-1:0];
 
-assign dout_uni_y_exp = s5_expadj_final[AL_EXPSIZE-1:0];
 
 endmodule /* FPALU */

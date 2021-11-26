@@ -81,7 +81,14 @@ initial begin
   #1 clk = ~clk;
   $display("exp %6b", dout_uni_y_exp);
   $display("man %22b", dout_uni_y_man_dn);
-  
+  #1 clk = ~clk;
+  #1 clk = ~clk;
+  #1 clk = ~clk;
+  #1 clk = ~clk;
+  #1 clk = ~clk;
+  #1 clk = ~clk;
+  #1 clk = ~clk;
+  #1 clk = ~clk;
   $finish;
 end
 endmodule 
