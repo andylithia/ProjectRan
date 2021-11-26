@@ -60,7 +60,9 @@ localparam OPSIZE = 2;
 localparam OPC_ADD29i  = 2'b11;	// Adding   Mode
 localparam OPC_MUL16i  = 2'b10;	// Multiply Mode
 localparam OPC_ADDSKIP = 2'b01;	// We found a zero, skip the addition entirely
-localparam OPC_SLEEP   = 2'b00; // Low Power Mode
+// localparam OPC_SLEEP   = 2'b00; // Low Power Mode
+// To set this into sleep mode, just disable the clock
+localparam OPC_ADD29NORM = 2'b00;	// Add and Normalize (last accumulation)
 
 
 // ----- PIPELINE STAGE 1 -----
@@ -352,40 +354,46 @@ end
 // UNIFIED: Final Shifter
 reg [AL_MANSIZE:0] s5_many_r;
 reg [4:0]          s5_lzd_r;
+reg [4:0]          s5_shiftbias;
 always @(posedge clk) begin
 	s5_many_r    <= s4_many_r;
 	s5_lzd_r     <= s4_lzd;
 end
 
-reg [31:0] s5_bsl_out;			// The final shifter
+always @* begin
+	if(s5_opcode_r==OPC_ADD29NORM)
+		s5_shiftbias = s5_lzd_r + 1'b1;	// Also remove the hidden 1
+	else
+		s5_shiftbias = s5_lzd_r;		// Denorm (Default)
+end
+
+wire [31:0] s5_bsl_out;			// The final shifter
+assign dout_uni_y_man_dn = s5_bsl_out[32 -: 22];
 bsl #(.SWIDTH(5)) s5_u_bsl (
   .din({9'b0,s5_alu_out_r}),
-	.s(s5_lzd_r),
+	.s(s5_shiftbias),
 	.filler(1'b0),
   .dout(s5_bsl_out)
 );
 
-assign dout_uni_y_man_dn = s5_bsl_out[26-:22];
-
 // UNIFIED: Exponent Adjust
-
 // Signal Relay
-reg [AL_EXPSIZE-1:0]	s5_ea_r;
-reg [AL_EXPSIZE-1:0]	s5_eb_r;
-reg                     s5_ea_gte_eb_r;
+reg [AL_EXPSIZE-1:0] s5_ea_r;
+reg [AL_EXPSIZE-1:0] s5_eb_r;
+reg                  s5_ea_gte_eb_r;
+wire                 s5_ea_lt_eb = ~s5_ea_gte_eb_r;
 always @(posedge clk) begin
 	s5_ea_r        <= s4_ea_r;
 	s5_eb_r        <= s4_eb_r;
 	s5_ea_gte_eb_r <= s4_ea_gte_eb_r;
 end
-wire                  s5_ea_lt_eb = ~s5_ea_gte_eb_r;
 wire [AL_EXPSIZE-1:0] s5_expadj_skip = 0;
 wire [AL_EXPSIZE:0]   s5_expadj_mul;
 wire [AL_EXPSIZE-1:0] s5_expadj_add;
 reg  [AL_EXPSIZE:0]   s5_expadj_final;
+
 assign s5_expadj_mul  = s5_ea_r + s5_eb_r - AL_EXPBIAS + 1;
 assign s5_expadj_add  = s5_ea_gte_eb_r ?  s5_ea_r : s5_eb_r;
-assign s5_expadj_skip = s5_ea_lt_eb    ?  s5_eb_r : s5_ea_r;
 always @* begin
   /*
 	if(s5_opcode_r == OPC_ADD29i)				 
@@ -398,6 +406,6 @@ always @* begin
   s5_expadj_final = {1'b0,s5_expadj_add} - s5_lzd_r - 1;
 end
 
-  assign dout_uni_y_exp = s5_expadj_final[AL_EXPSIZE-1:0];
+assign dout_uni_y_exp = s5_expadj_final[AL_EXPSIZE-1:0];
 
 endmodule /* FPALU */
