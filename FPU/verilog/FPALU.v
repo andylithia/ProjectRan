@@ -12,7 +12,6 @@
 //  POST ACC  FP29i   1     6    22        29
 //  OUTPUT    FP16    1     5    10        16 
 
-
 // Adder:
 // Addsub Control Signals:
 //          ea > eb     ea < eb
@@ -24,9 +23,9 @@
 //  1  1   1  ma + mb   1  mb + ma
 
 // Multiply:
-// MANA is FP16 FIR Input:		Regular FP16, Most likely Normalized
-// MANB is Coefficient Input: 	Always Denormalized
-
+// MANA is FP16 FIR Input:		   Regular FP16, Most likely Normalized
+// MANB is Coefficient Input: 	   Always Denormalized
+// MANY is FIR_input.*Coefficient: Always Denormalized
 
 module FPALU (
 	input           rst_n,
@@ -265,15 +264,7 @@ always @(posedge clk) begin
 	s3_ea_gte_eb_r <= s2_ea_gte_eb_r;
 end
 
-// ADDER: Denorm Zero: Bypass Path
-wire [AL_MANSIZE:0] s3_mmux_postalu;
-assign s3_mmux_postalu = (s3_opcode_r==OPC_ADDSKIP) ? s3_lhs_r : s3_alu_out;
-
-reg [AL_MANSIZE-1:0]	s3_many_dummy_r;
-always @(posedge clk) 	s3_many_dummy_r <= s2_many_dummy_r;
-
-
-// BR4: Final Summation
+// MULTIPLIER: Final Summation Relay
 reg [21:0]        s3_mulout;
 reg [16:0]        s3_ps0_r;
 reg [16:0]        s3_ps1_r;
@@ -283,16 +274,7 @@ always @(posedge clk) begin
 	s3_ps0_r <= s2_ps0;
 	s3_ps1_r <= s2_ps1;
 	s3_s2_r  <= s2_s2;
-	s3_s5_r  <= s2_s5;
 end
-
-/*
-always @* begin
-	s3_mulout =             {{5{s3_ps0_r[16]}}, s3_ps0_r               };
-	s3_mulout = s3_mulout + {                  s3_ps1_r, 1'b0, s3_s2_r, 4'b0};
-	s3_mulout = s3_mulout + {11'b0,        s3_s5_r,           10'b0};
-end
-*/
 
 // UNIFIED: ALU Implementation
 reg [AL_MANSIZE:0]   s3_alumux_lhs;	// 23bits (sign extended)
@@ -334,53 +316,30 @@ assign s3_mmux_y = (s3_opcode_r==OPC_ADDSKIP) ? s3_lhs_r : s3_alu_out;
 // General Note for S4 and S5:
 //  In a regular FP Pipeline, all operations need to perform zero detect
 //  and shifting. (i.e. Normalization)
-//  But our application, FIR, is special:
-//  Normalization in constant multiplication is useless, 
-//  The result will be re-normalized anyway during the accumulation
-//  so we can actually save two cycles on multiplication
-//  
+// We don't need to re-normalize to the IEEE format (1.exp)
+// To keep things simple, all the internal numbers are denormalized
+// (0.exp) 
 
 // UNIFIED OUTPUT STAGE: Zero Detect and EXP Bias Calculation
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s4_opcode_r;
-reg [AL_MANSIZE:0]   s4_alu_out_r;
-reg [4:0]            s4_lzd;
+reg [AL_MANSIZE:0]   s4_many_r;		// Mantissa Y
 reg [AL_EXPSIZE-1:0] s4_expa_r;		// Save Exponents for S5
 reg [AL_MANSIZE-1:0] s4_expb_r;		// /
+reg                  s4_ea_gte_eb_r;
 always @(posedge clk) begin
-	if(s3_opcode_r == OPC_ADD29i) 
-		s4_alu_out_r <= s3_mmux_postalu;
-	else if(s3_opcode_r == OPC_MUL16i) 
-		s4_alu_out_r <= s3_mulout;
-	s4_opcode_r  <= s3_opcode_r;
-end
-  
-wire [AL_MANSIZE:0]  s4_lzdi = s4_alu_out_r;
-// UNIFIED: Leading Zero Detect:
-count_lead_zero #(.W_IN(32)) s4_u_lzd(
-  .in({s4_lzdi,{(32-AL_MANSIZE-1){1'b0}}}),
-  .out(s4_lzd)
-);
-
-// Multiplier Signal Relay
-reg [AL_EXPSIZE-1:0]	s4_ea_r;
-reg [AL_EXPSIZE-1:0]	s4_eb_r;
-reg                     s4_ea_gte_eb_r;
-always @(posedge clk) begin
-	s4_ea_r        <= s3_ea_r;
-	s4_eb_r        <= s3_eb_r;
+	s4_many_r   <= s3_mmux_y;	
+	s4_opcode_r    <= s3_opcode_r;
+	s4_expa_r      <= s3_expa_r;
+	s4_expb_r      <= s3_expb_r;
 	s4_ea_gte_eb_r <= s3_ea_gte_eb_r;
 end
-// I guess the last two stage can also be by passed for denorm zero
-// May not be necessary, we'll see when it comes to the multiplier impl.
-
-// We don't deal with zeros here:
-//  Because the mantissa within the ALU is always DENORMALIZED,
-//  Adding zeros is just adding zeros to the mantissa.
-// With additional processing you may be able to get lower power
-//  (By skipping zero in the entire addition pipeline)
-//  but the chance of having zero is not high anyway. 
-// READ the note at stage 1 for more info
+  
+// aluout is 23bits
+// UNIFIED: Leading Zero Detect:
+wire [4:0]  s4_lzd;		// 
+wire [31:0] s4_lzdi = {s4_many_r,{(32-AL_MANSIZE-1){1'b0}}};
+count_lead_zero #(.W_IN(32)) s4_u_lzd(.in(s4_lzdi), .out(s4_lzd));
 
 // ----- PIPELINE STAGE 5 -----
 // UNIFIED OUTPUT STAGE: Final Shifting, Truncation, etc
@@ -391,20 +350,22 @@ always @(posedge clk) begin
 end
 
 // UNIFIED: Final Shifter
-reg [AL_MANSIZE:0] s5_alu_out_r;
+reg [AL_MANSIZE:0] s5_many_r;
 reg [4:0]          s5_lzd_r;
 always @(posedge clk) begin
-	s5_alu_out_r <= s4_alu_out_r;
+	s5_many_r    <= s4_many_r;
 	s5_lzd_r     <= s4_lzd;
 end
-  reg [31:0] s5_bsl_out;
+
+reg [31:0] s5_bsl_out;			// The final shifter
 bsl #(.SWIDTH(5)) s5_u_bsl (
   .din({9'b0,s5_alu_out_r}),
 	.s(s5_lzd_r),
 	.filler(1'b0),
   .dout(s5_bsl_out)
 );
-  assign dout_uni_y_man_dn = s5_bsl_out[26-:22];
+
+assign dout_uni_y_man_dn = s5_bsl_out[26-:22];
 
 // UNIFIED: Exponent Adjust
 
