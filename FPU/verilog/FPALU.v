@@ -76,17 +76,50 @@ always @* begin
 end
 
 `ifdef DEBUGINFO
-	real din_a_real;	// Can be Normalized
-	real din_b_real;	// Always Denorm
-	real dout_y_real;	// Always Denorm
-	real dout_y_expected;
+	real a_real;	// Can be Normalized
+	real b_real_dn;	// Always Denorm
+	real y_real_dn;	// Always Denorm
+	real y_expected_ml;	// Multiply
+	real y_expected_ad;	// Add
+	real a_real_s2;
+	real b_real_s2;
+	real a_real_s3;
+	real b_real_s3;
+	real a_real_s4;
+	real b_real_s4;
+	real a_real_s5;
+	real b_real_s5;
+	integer many_expected_ml;
+
+	real mul_k1;
+	real mul_ik1;
+	
 	always @* begin
-		din_a_real  = din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
-		din_b_real  = {1'b1,din_uni_a_man_dn[ML_MANSIZE-1:0]} * 2.0**(-11.0) * 2**(din_ML_expb-15.0);
-		dout_y_real = dout_uni_y_man_dn * 2.0**(-22.0) * 2.0**(dout_uni_y_exp-31.0);
-		dout_y_expected = din_a_real * din_b_real;
+		a_real        = din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
+		b_real_dn     = {1'b1,din_uni_a_man_dn[ML_MANSIZE-1:0]} * 2.0**(-11.0) * 2**(din_ML_expb-15.0);
+		y_real_dn     = dout_uni_y_man_dn * 2.0**(-22.0) * 2.0**(dout_uni_y_exp-31.0);
+		y_expected_ml = a_real_s5 * b_real_s5;
+		y_expected_ad = a_real_s5 + b_real_s5;
+		many_expected_ml = din_ML_mana * din_ML_manb;
+		mul_k1 = y_real_dn / y_expected_ml;
+		mul_ik1 = 1/mul_k1;
 	end
+	
+	always @(posedge clk) begin
+		a_real_s2 <= a_real;
+		b_real_s2 <= b_real_dn;
+		a_real_s3 <= a_real_s2;
+		b_real_s3 <= b_real_s2;
+		a_real_s4 <= a_real_s3;
+		b_real_s4 <= b_real_s3;
+		a_real_s5 <= a_real_s4;
+		b_real_s5 <= b_real_s4;
+	end
+
 `endif /* DEBUGINFO */
+
+
+
 
 // ACHTUNG:
 // You MUST deal with zeros somewhere, maybe here.
@@ -355,7 +388,7 @@ end
 // aluout is 23bits
 // UNIFIED: Leading Zero Detect:
 wire [4:0]  s4_lzd;		// 
-wire [31:0] s4_lzdi = {s4_many_r,10'b0};
+wire [31:0] s4_lzdi = {s4_many_r,9'b0};
 count_lead_zero #(.W_IN(32)) s4_u_lzd(.in(s4_lzdi), .out(s4_lzd));
 
 // ----- PIPELINE STAGE 5 -----
@@ -383,9 +416,9 @@ always @* begin
 end
 
 wire [31:0]        s5_bsl_out;					// The final shifter
-assign dout_uni_y_man_dn = {s5_bsl_out[21:0]};	// Truncate to 22 bits
+assign dout_uni_y_man_dn = s5_bsl_out[31:10];	// Truncate to 22 bits
 bsl #(.SWIDTH(5)) s5_u_bsl (
-	.din    ({10'b0,s5_many_r}),
+	.din    ({s5_many_r,9'b0}),
 	.s      (s5_shiftbias     ),
 	.filler (1'b0             ),
 	.dout   (s5_bsl_out       )
@@ -408,12 +441,12 @@ wire [AL_EXPSIZE:0]   s5_expadj_add;
 reg  [AL_EXPSIZE:0]   s5_expadj_final;
 
 // MULTIPLY: Re-bias exponents to AL_EXPBIAS
-assign s5_expadj_mul  = {1'b0,s5_ea_r} + {1'b0,s5_eb_r} - 2*ML_EXPBIAS + 2;
+assign s5_expadj_mul  = {1'b0,s5_ea_r} + {1'b0,s5_eb_r} - 2*ML_EXPBIAS + 3;
 // ADDER: Use the larger exponent
 assign s5_expadj_add  = s5_ea_gte_eb_r ?  {1'b0,s5_ea_r} : {1'b0,s5_eb_r};
 always @* begin
 	if(s5_opcode_r == OPC_ADD29i)				 
-		s5_expadj_final = s5_expadj_add - s5_lzd_r;
+		s5_expadj_final = s5_expadj_add - s5_lzd_r - 12;
 	else if (s5_opcode_r == OPC_MUL16i) 
 		s5_expadj_final = s5_expadj_mul - s5_lzd_r;
 	else if (s5_opcode_r == OPC_ADDSKIP)	// Pass Thru

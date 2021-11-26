@@ -1,0 +1,5 @@
+HOW TO RUN SIMULATION
+1. Install Icarus Verilog & GtkWave (GUI)
+2. If you're using MacOS, you may need to add "alias gtkwave='open -a gtkwave'" in your .zshrc
+3. execute ./run.sh, a gtkwave window will popup soon
+

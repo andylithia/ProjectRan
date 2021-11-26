@@ -61,8 +61,8 @@ assign dout    = temp[SWIDTH];
 
 genvar gi;
 generate
-	for(gi=0;gi<SWIDTH;gi=gi+1) begin : gen_brshift
-		assign temp[gi+1] = s[gi] ? {temp[gi]<<(2**gi),{(2**gi){filler}}} : temp[gi];
+	for(gi=0;gi<SWIDTH;gi=gi+1) begin : gen_blshift
+		assign temp[gi+1] = s[gi] ? {temp[gi],{(2**gi){filler}}} : temp[gi];
 	end
 endgenerate
 
