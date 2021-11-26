@@ -11,7 +11,7 @@
 //  POST MUL  FP29i   1     6    22        29
 //  POST ACC  FP29i   1     6    22        29
 //  OUTPUT    FP16    1     5    10        16 
-
+//
 // Adder:
 // Addsub Control Signals:
 //          ea > eb     ea < eb
@@ -177,7 +177,6 @@ bsr #(.SWIDTH(AL_EXPSIZE-1)) s2_u_bsr(
 
 // ADDER: Exchanger & Inverter
 // This Exchanger is here for subtraction
-// Exchange or not is determined 
 wire [AL_MANSIZE-1:0] s2_mmux2_lhs;
 wire [AL_MANSIZE-1:0] s2_mmux2_rhs;
 xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
@@ -253,8 +252,6 @@ always @(posedge clk) begin
 	s3_rhs_r     <= s2_mmux3_rhs_addsub;
 	s3_addsubn_r <= s2_addsubn_r;
 end
-
-
 
 // Multiplier Signal Relay
 reg [AL_EXPSIZE-1:0]	s3_ea_r;
@@ -367,13 +364,13 @@ always @* begin
 		s5_shiftbias = s5_lzd_r;		// Denorm (Default)
 end
 
-wire [31:0] s5_bsl_out;			// The final shifter
-assign dout_uni_y_man_dn = s5_bsl_out[32 -: 22];
+wire [31:0]        s5_bsl_out;						// The final shifter
+assign dout_uni_y_man_dn = s5_bsl_out[32 -: 22];	// Truncate to 22 bits
 bsl #(.SWIDTH(5)) s5_u_bsl (
-  .din({9'b0,s5_alu_out_r}),
-	.s(s5_shiftbias),
-	.filler(1'b0),
-  .dout(s5_bsl_out)
+	.din    ({9'b0,s5_alu_out_r}),
+	.s      (s5_shiftbias       ),
+	.filler (1'b0               ),
+	.dout   (s5_bsl_out         )
 );
 
 // UNIFIED: Exponent Adjust
@@ -389,22 +386,26 @@ always @(posedge clk) begin
 end
 wire [AL_EXPSIZE-1:0] s5_expadj_skip = 0;
 wire [AL_EXPSIZE:0]   s5_expadj_mul;
-wire [AL_EXPSIZE-1:0] s5_expadj_add;
+wire [AL_EXPSIZE:0]   s5_expadj_add;
 reg  [AL_EXPSIZE:0]   s5_expadj_final;
 
-assign s5_expadj_mul  = s5_ea_r + s5_eb_r - AL_EXPBIAS + 1;
-assign s5_expadj_add  = s5_ea_gte_eb_r ?  s5_ea_r : s5_eb_r;
+// MULTIPLY: Re-bias exponents to AL_EXPBIAS
+assign s5_expadj_mul  = s5_ea_r + s5_eb_r - 2*ML_EXPBIAS + AL_EXPBIAS + 1;
+// ADDER: Use the larger exponent
+assign s5_expadj_add  = s5_ea_gte_eb_r ?  {1'b0,s5_ea_r} : {1'b0,s5_eb_r};
 always @* begin
-  /*
 	if(s5_opcode_r == OPC_ADD29i)				 
-		s5_expadj_final = {1'b0,s5_expadj_add} - s5_lzd_r;
+		s5_expadj_final = s5_expadj_add - s5_lzd_r;
 	else if (s5_opcode_r == OPC_MUL16i) 
 		s5_expadj_final = s5_expadj_mul - s5_lzd_r;
-	else	// Pass Thru
+	else if (s5_opcode_r == OPC_ADDSKIP)	// Pass Thru
 		s5_expadj_final = {1'b0, s5_expadj_skip};
-	*/
-  s5_expadj_final = {1'b0,s5_expadj_add} - s5_lzd_r - 1;
+	else
+		s5_expadj_final = s5_expadj_add - s5_lzd_r + 1;	
 end
+
+// TODO: Deal with exponent overflow using the extra bit
+
 
 assign dout_uni_y_exp = s5_expadj_final[AL_EXPSIZE-1:0];
 
