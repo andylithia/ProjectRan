@@ -12,17 +12,33 @@
 //  POST ACC  FP29i   1     6    22        29
 //  OUTPUT    FP16    1     5    10        16 
 
+
+// Adder:
+// Addsub Control Signals:
+//          ea > eb     ea < eb
+//            SRB         SRA
+// sa sb  sy    my     sy    my
+//  0  0   0  ma + mb   0  mb + ma
+//  0  1   0  ma - mb   1  mb - ma
+//  1  0   1  ma - mb   0  mb - ma
+//  1  1   1  ma + mb   1  mb + ma
+
+// Multiply:
+// MANA is FP16 FIR Input:		Regular FP16, Most likely Normalized
+// MANB is Coefficient Input: 	Always Denormalized
+
+
 module FPALU (
 	input           rst_n,
 	input           clk,
 	
 	input           din_uni_a_sgn,
 	input [5:0]     din_uni_a_exp,
-	input [21:0]    din_uni_a_man_dn,   // Always Left-Aligned, Denorm
+	input [21:0]    din_uni_a_man_dn,   // Always Right-Aligned, Denorm
 
 	input           din_uni_b_sgn,
 	input [5:0]     din_uni_b_exp,
-	input [21:0]    din_uni_b_man_dn,   // Always Left-Aligned, Denorm
+	input [21:0]    din_uni_b_man_dn,   // Always Right-Aligned, Denorm
 
 	input           add_muln,           // 1: Adder Mode, 0: Multiplier Mode
 	output          dout_uni_y_sgn,
@@ -52,16 +68,27 @@ localparam OPC_SLEEP   = 2'b00; // Low Power Mode
 //
 wire [OPSIZE-1:0] s1_opcode = add_muln;
 
+// Input Wiring
+wire [AL_MANSIZE-1:0]	din_AL_mana = din_uni_a_man_dn;	// 22b Denormalized
+wire [AL_MANSIZE-1:0]	din_AL_manb = din_uni_b_man_dn;	// 22b Denormalized
+wire [ML_EXPSIZE-1:0]   din_ML_expa = din_uni_a_exp[ML_EXPSIZE-1:0];
+wire [ML_EXPSIZE-1:0]   din_ML_expb = din_uni_b_exp[ML_EXPSIZE-1:0];
+
+// Dealing with denorm number
+wire s1_ml_ea_is_denorm = !(|din_ML_expa);
+wire s1_ml_eb_is_denorm = !(|din_ML_expb);
+wire [ML_MANSIZE-1:0]   din_ML_mana = s1_ea_is_denorm ? {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0} : {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
+wire [ML_MANSIZE-1:0]   din_ML_manb = {din_uni_b_man_dn[ML_MANSIZE-2:0],1'b0};
+
 // ACHTUNG:
 // You MUST deal with zeros somewhere, maybe here.
 // e.g. adding 0e10 to 123e0 will result in 0e10, which is clearly incorrect
 // when one of the input is all zeros, you must give up the current exponent compare
 
-
 // ADDER: Exponent Compare
 wire [AL_EXPSIZE:0]   s1_ea_sub_eb = {1'b0,din_uni_a_exp} - {1'b0,din_uni_b_exp};
-wire                  s1_ea_lt_eb  = s1_ea_sub_eb[AL_EXPSIZE];
-wire                  s1_ea_gte_eb  = ~s1_ea_lt_eb;
+wire                  s1_ea_lt_eb  = s1_ea_sub_eb[AL_EXPSIZE];	// Inspect Borrow at MSB
+wire                  s1_ea_gte_eb  = ~s1_ea_lt_eb;				// No Borrow -> EA-EB ≥ 0
 wire [AL_EXPSIZE-1:0] s1_ea_sub_eb_abs = s1_ea_gte_eb ?  s1_ea_sub_eb[AL_EXPSIZE-1:0] : {~s1_ea_sub_eb+1'b1};
 // ADDER: Sign Compare
 wire       s1_addsubn = ~(din_uni_a_sgn ^ din_uni_b_sgn);	// 1: ADD, 0: SUB
@@ -77,30 +104,23 @@ xchg #(.DWIDTH(22)) s1_u_manxchg(
 	.ob(s1_mmux_rhs)
 );
 
-// Multiplier Stage 1
-// wire [ML_MANSIZE-1:0] s1_wt_lhs = din_uni_a_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
-// wire [ML_MANSIZE-1:0] s1_wt_rhs = din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
-
-// This most definitely need more optimization
-// wire [AL_MANSIZE-1:0] s1_mulout = s1_wt_lhs * s1_wt_rhs; 
 // MULTIPLIER: Booth Encoder
 localparam  BR4SYM_SIZE = 3;		// Radix-4 Booth Symbol Size
-
-wire [ML_MANSIZE+2:0] s1_br4enc_input =
-	{2'b00, din_uni_b_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE], 1'b0};
-wire [ML_MANSIZE-1:0] s1_mana = din_uni_a_man_dn[AL_MANSIZE-1:AL_MANSIZE-ML_MANSIZE];
-wire [(BR4SYM_SIZE*6)-1:0] 		s1_br4enc;
-wire [(ML_MANSIZE+1)*6-1:0]		s1_br4_pp;
-wire [5:0]                      s1_br4_s;
+wire [ML_MANSIZE+2:0] s1_br4enc_input = {2'b00, din_ML_manb, 1'b0};
+wire [(BR4SYM_SIZE*6)-1:0] 		s1_br4enc;	// BR4 Encoded MANB
+wire [(ML_MANSIZE+1)*6-1:0]		s1_br4_pp;	// BR4 Partial Products      (72bits)
+wire [5:0]                      s1_br4_s;	// BR4 Partial Product Signs (12bits)
 genvar gi;
 generate
 	for(gi=0;gi<6;gi=gi+1) begin : gen_br4enc
+		// BR4 Encoder
 		booth_enc_r4 s1_u_br4enc (
 			.bin(s1_br4enc_input[2*(gi+1):2*gi]),
 			.br4_out(s1_br4enc[(gi+1)*3-1:gi*3])
 		);
+		// BR4 Partial Product Generator
 		booth_ppgen_r4 s1_u_br4ppgen (
-			.a(s1_mana),
+			.a(din_ML_mana),
 			.br4(s1_br4enc[(gi+1)*3-1:gi*3]),
 			.o(s1_br4_pp[(ML_MANSIZE+1)*(gi+1)-1:(ML_MANSIZE+1)*(gi)]),
 			.s(s1_br4_s[gi])
@@ -108,18 +128,22 @@ generate
 	end
 endgenerate
 
-
 // ----- PIPELINE STAGE 2 -----
 //
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s2_opcode_r;
+reg [AL_EXPSIZE-1:0] s2_expa_r;		// Save Exponents for S5
+reg [AL_MANSIZE-1:0] s2_expb_r;		// /
 always @(posedge clk) begin
 	s2_opcode_r <= s1_opcode;
+	s2_expa_r   <= din_uni_a_exp;
+	s2_expb_r   <= din_uni_b_exp;
 end
 
 // ADDER: Signal Relay
 reg [AL_EXPSIZE-1:0] s2_ea_sub_eb_abs_r;
 reg                  s2_ea_gte_eb_r;
+wire                 s2_ea_lt_eb = ~s2_ea_gte_eb_r;
 reg [AL_MANSIZE-1:0] s2_mmux_lhs_r;
 reg [AL_MANSIZE-1:0] s2_mmux_rhs_r;
 reg                  s2_addsubn_r;
@@ -142,39 +166,34 @@ wire [OPSIZE-1:0] s2_opcode_mod;
 // When shifting by [MSB], the output becomes zero
 wire [31:0]	s2_bsr_out;
 wire [AL_MANSIZE-1:0] s2_bsr_out_gated = s2_ea_sub_eb_abs_r[AL_EXPSIZE-1]  ? {AL_MANSIZE{1'b0}} : s2_bsr_out[31:32-AL_MANSIZE];
-  
 bsr #(.SWIDTH(AL_EXPSIZE-1)) s2_u_bsr(
   .din({s2_mmux_rhs_r,10'b0}),
 	.s(s2_ea_sub_eb_abs_r[AL_EXPSIZE-2:0]),
 	.filler(1'b0),
 	.dout(s2_bsr_out)
 );
+// L: s2_mmux_lhs_r, R: s2_bsr_out_gated
 
 // ADDER: Exchanger & Inverter
-//
+// This Exchanger is here for subtraction
+// Exchange or not is determined 
 wire [AL_MANSIZE-1:0] s2_mmux2_lhs;
 wire [AL_MANSIZE-1:0] s2_mmux2_rhs;
 xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
 	.ia(s2_mmux_lhs_r),
 	.ib(s2_bsr_out_gated),
-	.xchg(s2_ea_gte_eb_r),
+	.xchg(s2_ea_lt_eb),
 	.oa(s2_mmux2_lhs),
 	.ob(s2_mmux2_rhs)
 );
 
-wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub = s2_addsubn_r ? s2_mmux2_rhs : ~s2_mmux2_rhs;
-
+wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub  = s2_addsubn_r ? s2_mmux2_rhs : ~s2_mmux2_rhs;
 // ADDER: Denorm Zero: Bypass Path
+// Use LHS as the bypass path to reduce delay
 wire [AL_MANSIZE:0]   s2_mmux3_lhs_addsub;
 assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? {1'b0,s2_mmux_rhs_r} : {1'b0, s2_mmux2_lhs};
 
-// MULTIPLIER, Part I: Partial Product Generation
-// reg [(BR4SYM_SIZE*6)-1:0] s2_br4enc_r; // Multiplier Encoded in Radix-4 Booth Symbols
-// always @(posegde clk)     s2_br4enc_r <= s1_br4enc;
-reg [AL_MANSIZE-1:0]		s2_many_dummy_r;
-always @(posedge clk) s2_many_dummy_r <= 0;
-// Partial Product Generation:
-
+// MULTIPLIER, Part II: Partial Product Summation 1
 // Multiplier Signal Relay
 reg [AL_EXPSIZE-1:0]	        s2_ea_r;
 reg [AL_EXPSIZE-1:0]	        s2_eb_r;
@@ -206,27 +225,27 @@ always @* begin
 	s2_ps1 =          {{5{s2_br4_s_r[3]}},pp3};
 	s2_ps1 = s2_ps1 + {{3{s2_br4_s_r[4]}},pp4,1'b0,s2_br4_s_r[3]};
 	s2_ps1 = s2_ps1 + {{1{s2_br4_s_r[5]}},pp5,1'b0,s2_br4_s_r[4], 2'b0};
-	/*
-	s2_ps1 =          {{3{s2_br4_s_r[3]}},pp3};
-	s2_ps1 = s2_ps1 + {{2{s2_br4_s_r[4]}},pp4,s2_br4_s_r[3]};
-	s2_ps1 = s2_ps1 + {   s2_br4_s_r[5],  pp5,s2_br4_s_r[4]};
-	*/
+	s2_ps1 = s2_ps1 + { s2_s5, 10'b0 };
 end
 
 // ----- PIPELINE STAGE 3 -----
 //
 // SEGMENT 1. Pipeline Signal Relay
 reg [OPSIZE-1:0]     s3_opcode_r;
+reg [AL_EXPSIZE-1:0] s3_expa_r;		// Save Exponents for S5
+reg [AL_MANSIZE-1:0] s3_expb_r;		// /
 always @(posedge clk) begin
 	if(s2_lhs_is_zero&&(s2_opcode_r==OPC_ADD29i)) 
                        s3_opcode_r <= OPC_ADDSKIP;
 	else               s3_opcode_r <= s2_opcode_r;
+	s3_expa_r <= s2_expa_r;
+	s3_expb_r <= s2_expb_r;
 end
 
-// ADDER: Summing (CLA)
-reg [AL_MANSIZE:0]  s3_lhs_r;
-reg [AL_MANSIZE:0]  s3_rhs_r;
-reg                 s3_addsubn_r;
+// ADDER: Summing
+reg [AL_MANSIZE:0]  s3_lhs_r;		// Adder DP, 23b
+reg [AL_MANSIZE:0]  s3_rhs_r;		// Adder DP, 23b
+reg                 s3_addsubn_r;	// Adder DP
 
 always @(posedge clk) begin
 	s3_lhs_r     <= s2_mmux3_lhs_addsub;
@@ -234,16 +253,8 @@ always @(posedge clk) begin
 	s3_addsubn_r <= s2_addsubn_r;
 end
 
-wire [AL_MANSIZE:0] s3_alu_out;
 
-  cla_adder #(.DATA_WID(AL_MANSIZE+1)) s3_s4_u_cla(
-	.in1(s3_lhs_r),
-	.in2(s3_rhs_r),
-	.carry_in(~s3_addsubn_r),
-	.sum(s3_alu_out),
-	.carry_out()
-);
-// assign s3_alu_out = s3_lhs_r + s3_rhs_r + ~s3_addsubn_r;
+
 // Multiplier Signal Relay
 reg [AL_EXPSIZE-1:0]	s3_ea_r;
 reg [AL_EXPSIZE-1:0]	s3_eb_r;
@@ -275,13 +286,48 @@ always @(posedge clk) begin
 	s3_s5_r  <= s2_s5;
 end
 
+/*
 always @* begin
 	s3_mulout =             {{5{s3_ps0_r[16]}}, s3_ps0_r               };
 	s3_mulout = s3_mulout + {                  s3_ps1_r, 1'b0, s3_s2_r, 4'b0};
 	s3_mulout = s3_mulout + {11'b0,        s3_s5_r,           10'b0};
 end
+*/
 
+// UNIFIED: ALU Implementation
+reg [AL_MANSIZE:0]   s3_alumux_lhs;	// 23bits (sign extended)
+reg [AL_MANSIZE:0]   s3_alumux_rhs;	// 23bits (sign extended)
+reg                  s3_alumux_cin;	// 
+wire [AL_MANSIZE:0]  s3_alu_out;
+always @(*) begin
+	// Default
+	s3_alumux_lhs = {(AL_MANSIZE+1){1'bx}};
+	s3_alumux_rhs = {(AL_MANSIZE+1){1'bx}};
+	s3_alumux_cin = 1'bx;
+	if(s3_opcode_r==OPC_ADD29i) begin
+		// Adder
+		s3_alumux_lhs = s3_lhs_r;
+		s3_alumux_rhs = s3_rhs_r;
+		s3_alumux_cin = ~s3_addsubn_r;
+	end else if (s3_opcode_r == OPC_MUL16i) begin
+		// Multiplier
+		s3_alumux_lhs = {{6{s3_ps0_r[16]}},   s3_ps0_r}; 
+		s3_alumux_rhs = {s3_ps1_r[16],s3_ps1_r, 1'b0, s3_s2_r, 4'b0};
+		s3_alumux_cin = 1'b0;
+	end
+end
 
+cla_adder #(.DATA_WID(AL_MANSIZE+1)) s3_s4_u_cla(
+	.in1      (s3_alumux_lhs),
+	.in2      (s3_alumux_rhs),
+	.carry_in (s3_alumux_cin),
+	.sum      (s3_alu_out   ),
+	.carry_out(             )	// Discarded
+);
+
+// ADDER: Denorm Zero: Bypass Path
+wire [AL_MANSIZE:0] s3_mmux_y;
+assign s3_mmux_y = (s3_opcode_r==OPC_ADDSKIP) ? s3_lhs_r : s3_alu_out;
 
 // ----- PIPELINE STAGE 4 -----
 // 
@@ -299,21 +345,15 @@ end
 reg [OPSIZE-1:0]     s4_opcode_r;
 reg [AL_MANSIZE:0]   s4_alu_out_r;
 reg [4:0]            s4_lzd;
+reg [AL_EXPSIZE-1:0] s4_expa_r;		// Save Exponents for S5
+reg [AL_MANSIZE-1:0] s4_expb_r;		// /
 always @(posedge clk) begin
 	if(s3_opcode_r == OPC_ADD29i) 
 		s4_alu_out_r <= s3_mmux_postalu;
 	else if(s3_opcode_r == OPC_MUL16i) 
 		s4_alu_out_r <= s3_mulout;
 	s4_opcode_r  <= s3_opcode_r;
-  /*
-	if(s3_opcode_r == OPC_ADD29i) begin
-		s4_lzdi <= s3_mmux_postalu;
-	end else if (s3_opcode_r == OPC_MUL16i) begin
-		s4_lzdi <= s3_many_dummy_r;
-	end
-    */
 end
-  
   
 wire [AL_MANSIZE:0]  s4_lzdi = s4_alu_out_r;
 // UNIFIED: Leading Zero Detect:
