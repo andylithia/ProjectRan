@@ -67,7 +67,11 @@ localparam OPC_ADD29NORM = 2'b00;	// Add and Normalize (last accumulation)
 
 // ----- PIPELINE STAGE 1 -----
 //
-wire [OPSIZE-1:0] s1_opcode = add_muln;
+reg [OPSIZE-1:0] s1_opcode;
+always @* begin
+	if(add_muln) s1_opcode = OPC_ADD29i;
+	else         s1_opcode = OPC_MUL16i;
+end
 
 // Input Wiring
 wire [AL_MANSIZE-1:0]	din_AL_mana = din_uni_a_man_dn;	// 22b Denormalized
@@ -78,7 +82,7 @@ wire [ML_EXPSIZE-1:0]   din_ML_expb = din_uni_b_exp[ML_EXPSIZE-1:0];
 // Dealing with denorm number
 wire s1_ml_ea_is_denorm = !(|din_ML_expa);
 wire s1_ml_eb_is_denorm = !(|din_ML_expb);
-wire [ML_MANSIZE-1:0]   din_ML_mana = s1_ea_is_denorm ? {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0} : {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
+wire [ML_MANSIZE-1:0]   din_ML_mana = s1_ml_ea_is_denorm ? {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0} : {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
 wire [ML_MANSIZE-1:0]   din_ML_manb = {din_uni_b_man_dn[ML_MANSIZE-2:0],1'b0};
 
 // ACHTUNG:
@@ -218,13 +222,14 @@ reg [16:0]        s2_ps1;
 wire              s2_s2 = s2_br4_s_r[2];
 wire              s2_s5 = s2_br4_s_r[5];
 always @* begin
+	
 	s2_ps0 =          {{5{s2_br4_s_r[0]}},pp0};
 	s2_ps0 = s2_ps0 + {{3{s2_br4_s_r[1]}},pp1,1'b0,s2_br4_s_r[0]};
-	s2_ps0 = s2_ps0 + {{1{s2_br4_s_r[2]}},pp2,1'b0,s2_br4_s_r[1], 2'b0};
+	s2_ps0 = s2_ps0 + {   s2_br4_s_r[2]  ,pp2,1'b0,s2_br4_s_r[1], 2'b0};
 
 	s2_ps1 =          {{5{s2_br4_s_r[3]}},pp3};
 	s2_ps1 = s2_ps1 + {{3{s2_br4_s_r[4]}},pp4,1'b0,s2_br4_s_r[3]};
-	s2_ps1 = s2_ps1 + {{1{s2_br4_s_r[5]}},pp5,1'b0,s2_br4_s_r[4], 2'b0};
+	s2_ps1 = s2_ps1 + {   s2_br4_s_r[5],  pp5,1'b0,s2_br4_s_r[4], 2'b0};
 	s2_ps1 = s2_ps1 + { s2_s5, 10'b0 };
 end
 
@@ -273,6 +278,7 @@ always @(posedge clk) begin
 	s3_ps0_r <= s2_ps0;
 	s3_ps1_r <= s2_ps1;
 	s3_s2_r  <= s2_s2;
+	s3_s5_r  <= s2_s5;
 end
 
 // UNIFIED: ALU Implementation
@@ -281,10 +287,6 @@ reg [AL_MANSIZE:0]   s3_alumux_rhs;	// 23bits (sign extended)
 reg                  s3_alumux_cin;	// 
 wire [AL_MANSIZE:0]  s3_alu_out;
 always @(*) begin
-	// Default
-	s3_alumux_lhs = {(AL_MANSIZE+1){1'bx}};
-	s3_alumux_rhs = {(AL_MANSIZE+1){1'bx}};
-	s3_alumux_cin = 1'bx;
 	if(s3_opcode_r==OPC_ADD29i) begin
 		// Adder
 		s3_alumux_lhs = s3_lhs_r;
@@ -292,11 +294,19 @@ always @(*) begin
 		s3_alumux_cin = ~s3_addsubn_r;
 	end else if (s3_opcode_r == OPC_MUL16i) begin
 		// Multiplier
-		s3_alumux_lhs = {{6{s3_ps0_r[16]}},   s3_ps0_r}; 
-		s3_alumux_rhs = {s3_ps1_r[16],s3_ps1_r, 1'b0, s3_s2_r, 4'b0};
+		s3_alumux_lhs = {{5{s3_ps0_r[16]}},   s3_ps0_r}; 
+		s3_alumux_rhs = {s3_ps1_r, 1'b0, s3_s2_r, 4'b0};
 		s3_alumux_cin = 1'b0;
+	end else begin
+		// Default
+		s3_alumux_lhs = {(AL_MANSIZE+1){1'bx}};
+		s3_alumux_rhs = {(AL_MANSIZE+1){1'bx}};
+		s3_alumux_cin = 1'bx;
 	end
 end
+
+// For Debug
+wire [21:0] s3_mulout1 = {{5{s3_ps0_r[16]}}, s3_ps0_r}+ {                  s3_ps1_r, 1'b0, s3_s2_r, 4'b0} + {11'b0,        s3_s5_r,           10'b0};
 
 cla_adder #(.DATA_WID(AL_MANSIZE+1)) s3_s4_u_cla(
 	.in1      (s3_alumux_lhs),
@@ -323,14 +333,14 @@ assign s3_mmux_y = (s3_opcode_r==OPC_ADDSKIP) ? s3_lhs_r : s3_alu_out;
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s4_opcode_r;
 reg [AL_MANSIZE:0]   s4_many_r;		// Mantissa Y
-reg [AL_EXPSIZE-1:0] s4_expa_r;		// Save Exponents for S5
-reg [AL_MANSIZE-1:0] s4_expb_r;		// /
+reg [AL_EXPSIZE-1:0] s4_ea_r;		// Save Exponents for S5
+reg [AL_MANSIZE-1:0] s4_eb_r;		// /
 reg                  s4_ea_gte_eb_r;
 always @(posedge clk) begin
 	s4_many_r   <= s3_mmux_y;	
 	s4_opcode_r    <= s3_opcode_r;
-	s4_expa_r      <= s3_expa_r;
-	s4_expb_r      <= s3_expb_r;
+	s4_ea_r      <= s3_expa_r;
+	s4_eb_r      <= s3_expb_r;
 	s4_ea_gte_eb_r <= s3_ea_gte_eb_r;
 end
   
@@ -367,10 +377,10 @@ end
 wire [31:0]        s5_bsl_out;						// The final shifter
 assign dout_uni_y_man_dn = s5_bsl_out[32 -: 22];	// Truncate to 22 bits
 bsl #(.SWIDTH(5)) s5_u_bsl (
-	.din    ({9'b0,s5_alu_out_r}),
-	.s      (s5_shiftbias       ),
-	.filler (1'b0               ),
-	.dout   (s5_bsl_out         )
+	.din    ({9'b0,s5_many_r}),
+	.s      (s5_shiftbias    ),
+	.filler (1'b0            ),
+	.dout   (s5_bsl_out      )
 );
 
 // UNIFIED: Exponent Adjust

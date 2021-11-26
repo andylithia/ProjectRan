@@ -5,7 +5,7 @@
 
 // Exchanger
 module xchg #(
-	parameter DWIDTH = 32;
+	parameter DWIDTH = 32
 )(
 	input [DWIDTH-1:0]  ia,
 	input [DWIDTH-1:0]  ib,
@@ -38,8 +38,7 @@ assign dout    = temp[SWIDTH];
 genvar gi;
 generate
 	for(gi=0;gi<SWIDTH;gi=gi+1) begin : gen_brshift
-		assign temp[gi+1] = s[gi] ? \
-			{{(2**gi){filler}},temp[gi]>>(2**gi)} : temp[gi];
+		assign temp[gi+1] = s[gi] ? {{(2**gi){filler}},temp[gi]>>(2**gi)} : temp[gi];
 	end
 endgenerate
 
@@ -63,13 +62,13 @@ assign dout    = temp[SWIDTH];
 genvar gi;
 generate
 	for(gi=0;gi<SWIDTH;gi=gi+1) begin : gen_brshift
-		assign temp[gi+1] = s[gi] ? \
-			{temp[gi]<<(2**gi),{(2**gi){filler}}} : temp[gi];
+		assign temp[gi+1] = s[gi] ? {temp[gi]<<(2**gi),{(2**gi){filler}}} : temp[gi];
 	end
 endgenerate
 
 endmodule   /* bsl */
 
+/*
 module bsr_tb;
     reg [31:0] din;
     reg [4:0]  s;
@@ -100,9 +99,7 @@ module count_lead_zero #(
 );
 
 generate
-	if (W_IN == 2) begin : gen_base
-		assign out = !in[1];
-	end else begin : gen_recurse
+	if (W_IN > 2) begin : gen_recurse
 		wire [W_OUT-2:0] half_count;
 		wire [W_IN / 2-1:0] lhs = in[W_IN / 2 +: W_IN / 2];
 		wire [W_IN / 2-1:0] rhs = in[0        +: W_IN / 2];
@@ -115,6 +112,8 @@ generate
 			.out (half_count)
 		);
 		assign out = {left_empty, half_count};
+	end else begin : gen_terminal
+		assign out = !in[1];
 	end
 endgenerate
 
@@ -188,18 +187,18 @@ module booth_ppgen_r4 #(
 )(
 	input [DWIDTH-1:0]			a,
 	input [2:0]					br4,
-	output reg [DWIDTH+1:0]		o,
+	output reg [DWIDTH:0]		o,
 	output                      s
 );
 	assign s = br4[2];
 	always @* begin
-		o = {(DWIDTH+1){1'bx}};
+		o = {(DWIDTH){1'bx}};
 		case(br4)
 		3'b000: o = 0;
-		3'b001:	o = {2'b0,a};
-		3'b010: o = {1'b0,a,1'b0};
-		3'b111:	o = {2'b1,~a};
-		3'b110: o = {1'b1,~a,1'b1};
+		3'b001:	o = {1'b0,a};
+		3'b010: o = {a,1'b0};
+		3'b111:	o = {1'b1,~a};
+		3'b110: o = {~a,1'b1};
 		endcase
 	end
 endmodule /* booth_ppgen_r4 */

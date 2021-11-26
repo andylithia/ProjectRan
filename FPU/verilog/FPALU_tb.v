@@ -47,14 +47,14 @@ initial begin
   b = {$random};
   rst_n    = 1;
   clk      = 0;
-  add_muln = 1;
+  add_muln = 0;
 
   #1;
   
   $dumpfile("dump.vcd");
    $dumpvars;
-  a_real = $bitstoshortreal(a);
-  b_real = $bitstoshortreal(b);
+  //a_real = $bitstoshortreal(a);
+  //b_real = $bitstoshortreal(b);
   result = a_real + b_real;
 
   $display("a %32b", a);
