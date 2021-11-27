@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Sat Nov 27 07:40:41 2021
+[*] Sat Nov 27 07:43:53 2021
 [*]
 [dumpfile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/dump.vcd"
-[dumpfile_mtime] "Sat Nov 27 07:40:31 2021"
+[dumpfile_mtime] "Sat Nov 27 07:41:27 2021"
 [dumpfile_size] 1030773
-[savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/Untitled.gtkw"
-[timestart] 1000
+[savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/FPALU_FPADD29i_test.gtkw"
+[timestart] 4760
 [size] 1680 997
 [pos] 0 16
-*-10.864883 2000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-11.016896 4990 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] FPALU_tb.
 [treeopen] FPALU_tb.dut.
 [sst_width] 193
@@ -18,8 +18,18 @@
 [sst_vpaned_height] 306
 @28
 FPALU_tb.clk
-@22
+FPALU_tb.dut.s3_opcode_r[1:0]
+@c00022
 FPALU_tb.din_uni_a_exp[5:0]
+@28
+(0)FPALU_tb.din_uni_a_exp[5:0]
+(1)FPALU_tb.din_uni_a_exp[5:0]
+(2)FPALU_tb.din_uni_a_exp[5:0]
+(3)FPALU_tb.din_uni_a_exp[5:0]
+(4)FPALU_tb.din_uni_a_exp[5:0]
+(5)FPALU_tb.din_uni_a_exp[5:0]
+@1401200
+-group_end
 @28
 FPALU_tb.din_uni_a_man_dn[21:0]
 FPALU_tb.din_uni_a_sgn
@@ -98,13 +108,6 @@ FPALU_tb.dout_uni_y_man_dn[21:0]
 FPALU_tb.dut.s5_many_r[22:0]
 @22
 FPALU_tb.dut.s4_lzd[4:0]
-@200
--vvvvv Multiplier Test
-@28
-FPALU_tb.dut.din_ML_mana[10:0]
-FPALU_tb.dut.din_ML_manb[10:0]
-@420
-FPALU_tb.dut.many_expected_ml
 @24
 FPALU_tb.dut.s3_alu_out[22:0]
 @200
@@ -112,9 +115,10 @@ FPALU_tb.dut.s3_alu_out[22:0]
 @28
 FPALU_tb.dut.s3_alumux_rhs[22:0]
 FPALU_tb.dut.s3_alumux_lhs[22:0]
-FPALU_tb.dut.s3_opcode_r[1:0]
 @420
 FPALU_tb.dut.s5_expadj_final[6:0]
+@200
+-vvvvv Compare
 @28
 FPALU_tb.dut.y_real_FP29i
 FPALU_tb.dut.y_expected_ad
@@ -123,7 +127,6 @@ FPALU_tb.dut.mul_ik1
 FPALU_tb.dut.mul_k1
 FPALU_tb.dut.add_k1
 FPALU_tb.dut.add_valid
-@29
 FPALU_tb.dut.mul_valid
 [pattern_trace] 1
 [pattern_trace] 0

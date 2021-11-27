@@ -3,6 +3,10 @@
 // Anhang Li - Nov. 19 2021
 
 // TODO: 
+// VITAL: FPADD29i has a bug in the following condition:
+// SA=1, SB=0, EA<EB, Expected Mantissa: MB-MA
+//                    Actual Mantissa:   MA-MB
+
 // 1. Add Latches to minimize useless flipping
 
 `timescale 1ns/1ps
@@ -86,6 +90,9 @@ end
 
 	real mul_k1;
 	real mul_ik1;
+	reg  mul_valid;
+	real add_k1;
+	reg  add_valid; 
 	
 	always @* begin
 		a_real_FP16  [0] = (1.0-2.0*din_uni_a_sgn) * din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
@@ -98,6 +105,9 @@ end
 		many_expected_ml = din_ML_mana * din_ML_manb;
 		mul_k1 = y_real_FP29i / y_expected_ml;
 		mul_ik1 = 1/mul_k1;
+		mul_valid = ($abs(mul_k1)-1.0<0.00001);
+		add_k1 = (y_real_FP29i / y_expected_ad);
+		add_valid = ($abs(add_k1)-1.0<0.00001);
 	end
 
 	integer i;
@@ -175,6 +185,7 @@ endgenerate
 reg [OPSIZE-1:0]     s2_opcode_r;
 reg [AL_EXPSIZE-1:0] s2_expa_r;		// Save Exponents for S5
 reg [AL_MANSIZE-1:0] s2_expb_r;		// /
+reg                  s2_sa_r;
 always @(posedge clk) begin
 	s2_opcode_r <= s1_opcode;
 	if(s1_opcode == OPC_ADD29i) begin
@@ -184,6 +195,7 @@ always @(posedge clk) begin
 		s2_expa_r   <= din_ML_expa;
 		s2_expb_r   <= din_ML_expb;
 	end
+	s2_sa_r <= din_uni_a_sgn;
 end
 
 // ADDER: Signal Relay
@@ -280,12 +292,14 @@ end
 reg [OPSIZE-1:0]     s3_opcode_r;
 reg [AL_EXPSIZE-1:0] s3_expa_r;		// Save Exponents for S5
 reg [AL_MANSIZE-1:0] s3_expb_r;		// /
+reg                  s3_sa_r;
 always @(posedge clk) begin
 	if(s2_lhs_is_zero&&(s2_opcode_r==OPC_ADD29i)) 
                        s3_opcode_r <= OPC_ADDSKIP;
 	else               s3_opcode_r <= s2_opcode_r;
 	s3_expa_r <= s2_expa_r;
 	s3_expb_r <= s2_expb_r;
+	s3_sa_r   <= s2_sa_r;
 end
 
 // ADDER: Summing
@@ -382,6 +396,7 @@ reg [AL_EXPSIZE-1:0] s4_ea_r;		// Save Exponents for S5
 reg [AL_MANSIZE-1:0] s4_eb_r;		// /
 reg                  s4_ea_gte_eb_r;
 reg                  s4_addsubn_r;	// Used to calculate sign
+reg                  s4_sa_r;
 always @(posedge clk) begin
 	s4_many_r      <= s3_mmux_y;	
 	s4_opcode_r    <= s3_opcode_r;
@@ -389,6 +404,7 @@ always @(posedge clk) begin
 	s4_eb_r        <= s3_expb_r;
 	s4_ea_gte_eb_r <= s3_ea_gte_eb_r;
 	s4_addsubn_r   <= s3_addsubn_r;
+	s4_sa_r        <= s3_sa_r;
 end
   
 // aluout is 23bits
@@ -405,9 +421,11 @@ count_lead_zero #(.W_IN(32)) s4_u_lzd(.in(s4_lzdi), .out(s4_lzd));
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s5_opcode_r;
 reg                  s5_addsubn_r;	// Used to calculate sign
+reg                  s5_sa_r;
 always @(posedge clk) begin
 	s5_opcode_r  <= s4_opcode_r;
 	s5_addsubn_r <= s4_addsubn_r;
+	s5_sa_r      <= s4_sa_r;
 end
 
 // UNIFIED: Final Shifter
@@ -452,14 +470,16 @@ wire [AL_EXPSIZE:0]   s5_expadj_add;
 reg  [AL_EXPSIZE:0]   s5_expadj_final;
 reg                   s5_sign_final;
 // MULTIPLY: Re-bias exponents to AL_EXPBIAS
-assign s5_expadj_mul  = {1'b0,s5_ea_r} + {1'b0,s5_eb_r} - 2*ML_EXPBIAS + 3;
+assign s5_expadj_mul  = {1'b0,s5_ea_r} + {1'b0,s5_eb_r} - 2*ML_EXPBIAS + AL_EXPBIAS + 1;
 // ADDER: Use the larger exponent
 assign s5_expadj_add  = s5_ea_gte_eb_r ?  {1'b0,s5_ea_r} : {1'b0,s5_eb_r};
 always @* begin
 	if(s5_opcode_r == OPC_ADD29i) begin				// ADD29i
-		s5_expadj_final = s5_expadj_add - s5_lzd_r;
+		s5_expadj_final = s5_expadj_add + 2 - s5_lzd_r;
+		if(s5_addsubn_r)	s5_sign_final = s5_sa_r;
+		else				s5_sign_final = s5_ea_lt_eb ^ s5_sa_r;
 	end else if (s5_opcode_r == OPC_MUL16i) begin	// MUL16i 
-		s5_expadj_final = s5_expadj_mul - s5_lzd_r;
+		s5_expadj_final = s5_expadj_mul + 2 - s5_lzd_r;
 		s5_sign_final   = ~s5_addsubn_r;			
 	end else if (s5_opcode_r == OPC_ADDSKIP) begin	// Pass Thru
 		s5_expadj_final = {1'b0, s5_expadj_skip};
@@ -469,10 +489,7 @@ always @* begin
 end
 
 // TODO: Deal with exponent overflow using the extra bit
-
-wire [AL_EXPSIZE:0] s5_expadj_final1 = s5_expadj_final + AL_EXPBIAS;	// Adjust Bias
-wire                s5_expadj_ovflow = s5_expadj_final1[AL_EXPSIZE];	// Should Never be 1
-assign dout_uni_y_exp = s5_expadj_final1[AL_EXPSIZE-1:0];
+assign dout_uni_y_exp = s5_expadj_final[AL_EXPSIZE-1:0];
 assign dout_uni_y_sgn = s5_sign_final;
 
 endmodule /* FPALU */

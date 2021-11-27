@@ -40,6 +40,12 @@ module FPALU_tb();
 	initial begin
 		a = {$random};
 		b = {$random};
+		a = {$random};
+		b = {$random};
+		a = {$random};
+		b = {$random};
+		a = {$random};
+		b = {$random};
 		opcode = 2'b11;	// ADD29i
 		clk    = 0;
 		#1;
@@ -49,19 +55,8 @@ module FPALU_tb();
 		#1 clk = ~clk;
 
 		// Adder test
-		for(i=0;i<200;i=i+1) begin
+		for(i=0;i<10;i=i+1) begin
 			#1 clk = ~clk;
-			a = {$random};
-			b = {$random};
-			#1 clk = ~clk;
-		end
-
-		// Multiplier Test
-		opcode = 2'b10;	// MUL16i
-		for(i=0;i<200;i=i+1) begin
-			#1 clk = ~clk;
-			a = {$random};
-			b = {$random};
 			#1 clk = ~clk;
 		end
 		$finish;
