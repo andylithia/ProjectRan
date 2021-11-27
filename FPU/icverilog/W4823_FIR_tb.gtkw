@@ -1,0 +1,33 @@
+[*]
+[*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
+[*] Sat Nov 27 21:20:23 2021
+[*]
+[dumpfile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.vcd"
+[dumpfile_mtime] "Sat Nov 27 21:17:46 2021"
+[dumpfile_size] 33814
+[savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.gtkw"
+[timestart] 40600000000
+[size] 836 991
+[pos] 840 2
+*-31.871521 53100000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] W4823_FIR_tb.
+[sst_width] 193
+[signals_width] 167
+[sst_expanded] 1
+[sst_vpaned_height] 304
+@22
+W4823_FIR_tb.clk_div[7:0]
+@28
+W4823_FIR_tb.clk_fast
+W4823_FIR_tb.clk_slow
+W4823_FIR_tb.rst_n
+W4823_FIR_tb.dut.cycle_load
+W4823_FIR_tb.dut.cycle_mul
+W4823_FIR_tb.dut.cycle_acc_thru
+@25
+W4823_FIR_tb.dut.cycle_cnt_r[7:0]
+@28
+W4823_FIR_tb.dut.cycle_acc
+W4823_FIR_tb.dut.cycle_sleep
+[pattern_trace] 1
+[pattern_trace] 0

@@ -14,7 +14,7 @@ module FPALU_tb();
 	reg [1:0] opcode;
   
 	wire          din_uni_a_sgn    = a[28];
-	wire [5:0]    din_uni_a_exp    = a[27:22];
+	wire [5:0]    din_uni_a_exp    = {1'b1,a[26:22]};
 	reg  [21:0]   din_uni_a_man_dn;
 	wire          din_uni_b_sgn    = b[28];
 	wire [5:0]    din_uni_b_exp    = b[27:22];

@@ -3,11 +3,9 @@
 // Anhang Li - Nov. 19 2021
 
 // TODO: 
-// VITAL: FPADD29i has a bug in the following condition:
-// SA=1, SB=0, EA<EB, Expected Mantissa: MB-MA
-//                    Actual Mantissa:   MA-MB
-
+// 0. Deal with FP29i Overflow (Can be ignored)
 // 1. Add Latches to minimize useless flipping
+// 2. 
 
 `timescale 1ns/1ps
 module FPALU (
