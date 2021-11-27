@@ -11,6 +11,7 @@ module W4823_FIR(
 	output          valid		// Output Ready
 );
 
+`define DEBUGINFO
 
 wire clk_fast   = clk2;
 wire clk_fast_n = ~clk_fast;
@@ -34,7 +35,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 			ss_r <= 6'b000010;
 		end
 		6'b000010: begin
-			if(cycle_cnt_r==8'd64) begin	// Constant MUL16i
+			if(cycle_cnt_r==8'd62) begin	// Constant MUL16i
 				ss_r        <= 6'b000100;
 				cycle_cnt_r <= 0;	
 			end else begin
@@ -72,15 +73,35 @@ always @(posedge clk_fast or negedge rst_n) begin
 	end
 end
 
+reg cycle_load_dly_r;	
+wire dmem_wr = cycle_load_dly_r; // Enable Writing 1/2 Cycle prior
+always @(negedge clk_fast) begin
+	if(cycle_load) cycle_load_dly_r <= 1;
+	else           cycle_load_dly_r <= 0;
+end
+wire din_latch = cycle_load &~cycle_load_dly_r;
+wire dmem_clk  = (cycle_load|cycle_mul)&clk_fast;	// DMEM Clock
 
-wire dmem_wr;
-wire alu_clk;
-wire dmem_rd;
+wire alu_clk = (cycle_load_dly_r|cycle_mul|cycle_acc_thru|cycle_acc|cycle_accnorm) & clk_fast;
+
 wire regf_wr;
-wire regf_rd;
-wire [5:0]	dmem_addr;
+wire regf_clk;
+reg [5:0]	dmem_addr_r;
+
+always @(negedge dmem_clk or negedge rst_n) begin
+	if(~rst_n) dmem_addr_r <= 0;
+	else       dmem_addr_r <= dmem_addr_r + 1;
+end
+
 wire [5:0]	regf_addr;
 
+`ifdef DEBUGINFO
+integer alu_clk_cnt;
+always @(posedge alu_clk or posedge cycle_load) begin
+	if(cycle_load) alu_clk_cnt = 0;
+	else           alu_clk_cnt = alu_clk_cnt + 1;
+end 
 
+`endif /* DEBUGINFO */
 
 endmodule /* W4823_FIR */
