@@ -1,3 +1,7 @@
+// Implementation of the FIR Control Logic & Wrapper
+// For the W4823 FIR Project
+// Anhang Li - Nov. 19 2021
+
 module W4823_FIR(
 	input           rst_n,		//
 	input           clk1,		// Slow Clock 
@@ -13,9 +17,12 @@ module W4823_FIR(
 
 `define DEBUGINFO
 
+// +----------------------------------+
+// |     Part 1. State Controller     |
+// +----------------------------------+
+
 wire clk_fast   = clk2;
 wire clk_fast_n = ~clk_fast;
-
 reg [5:0] ss_r;		// Control State Register
 reg [7:0] cycle_cnt_r;
 wire cycle_load      = ss_r[0];
@@ -24,6 +31,14 @@ wire cycle_acc_thru  = ss_r[2];
 wire cycle_acc       = ss_r[3];
 wire cycle_accnorm   = ss_r[4];
 wire cycle_sleep     = ss_r[5];
+
+reg [1:0] alu_opcode;
+always @* begin
+	alu_opcode = 2'bxx;									// Default (doing nothing, can be any value)
+	if(cycle_mul) alu_opcode = 2'b10;	                // MUL16i
+	if(cycle_acc|cycle_acc_thru) alu_opcode = 2'b11;	// ADD29i
+	if(cycle_accnorm) alu_opcode = 2'b00;				// ADD29NORM
+end
 
 always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
@@ -73,6 +88,10 @@ always @(posedge clk_fast or negedge rst_n) begin
 	end
 end
 
+// +------------------------------------+
+// |     Part 2. Input Data Control     |
+// +------------------------------------+
+// 
 reg cycle_load_dly_r;	
 wire dmem_wr = cycle_load_dly_r; // Enable Writing 1/2 Cycle prior
 always @(negedge clk_fast) begin
@@ -81,6 +100,7 @@ always @(negedge clk_fast) begin
 end
 wire din_latch = cycle_load &~cycle_load_dly_r;
 wire dmem_clk  = (cycle_load|cycle_mul)&clk_fast;	// DMEM Clock
+// DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
 
 wire alu_clk = (cycle_load_dly_r|cycle_mul|cycle_acc_thru|cycle_acc|cycle_accnorm) & clk_fast;
 
@@ -88,12 +108,23 @@ wire regf_wr;
 wire regf_clk;
 reg [5:0]	dmem_addr_r;
 
+// Truncated, loops back automatically when dmem_addr_r >= 64;
 always @(negedge dmem_clk or negedge rst_n) begin
 	if(~rst_n) dmem_addr_r <= 0;
 	else       dmem_addr_r <= dmem_addr_r + 1;
 end
 
+
+// +-----------------------------------+
+// |     Part 3. REGF Data Control     |
+// +-----------------------------------+
+// 
+
+
+
+
 wire [5:0]	regf_addr;
+wire        regf_bypass;
 
 `ifdef DEBUGINFO
 integer alu_clk_cnt;
@@ -105,3 +136,5 @@ end
 `endif /* DEBUGINFO */
 
 endmodule /* W4823_FIR */
+
+/* vim: set ts=4 sw=4 noet */

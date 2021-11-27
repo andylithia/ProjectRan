@@ -232,6 +232,8 @@ bsr #(.SWIDTH(AL_EXPSIZE-1)) s2_u_bsr(
 
 // ADDER: Exchanger & Inverter
 // This Exchanger is here for subtraction
+/*
+// Why is this here...? Probably brain farts
 wire [AL_MANSIZE-1:0] s2_mmux2_lhs;
 wire [AL_MANSIZE-1:0] s2_mmux2_rhs;
 xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
@@ -242,6 +244,9 @@ xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
 	.oa(s2_mmux2_lhs),
 	.ob(s2_mmux2_rhs)
 );
+*/
+wire [AL_MANSIZE-1:0] s2_mmux2_lhs = s2_mmux2_lhs;
+wire [AL_MANSIZE-1:0] s2_mmux2_rhs = s2_bsr_out_gated;
 
 wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub  = s2_addsubn_r ? s2_mmux2_rhs : ~s2_mmux2_rhs;
 // ADDER: Denorm Zero: Bypass Path
@@ -493,4 +498,5 @@ assign dout_uni_y_sgn = s5_sign_final;
 
 endmodule /* FPALU */
 
+// Congrats on 500 Lines total :-D
 /* vim: set ts=4 sw=4 noet */

@@ -54,3 +54,5 @@ W4823_FIR dut (
 );
 
 endmodule /* W4823_FIR_tb */
+
+/* vim: set ts=4 sw=4 noet */
