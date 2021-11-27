@@ -105,9 +105,9 @@ end
 		many_expected_ml = din_ML_mana * din_ML_manb;
 		mul_k1 = y_real_FP29i / y_expected_ml;
 		mul_ik1 = 1/mul_k1;
-		mul_valid = ($abs(mul_k1)-1.0<0.00001);
+		mul_valid = ($abs(mul_k1)-1.0<0.0001);
 		add_k1 = (y_real_FP29i / y_expected_ad);
-		add_valid = ($abs(add_k1)-1.0<0.00001);
+		add_valid = ($abs(add_k1)-1.0<0.0001);
 	end
 
 	integer i;
@@ -239,7 +239,8 @@ wire [AL_MANSIZE-1:0] s2_mmux2_rhs;
 xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
 	.ia(s2_mmux_lhs_r),
 	.ib(s2_bsr_out_gated),
-	.xchg(s2_ea_lt_eb),
+	// .xchg(s2_ea_lt_eb),
+	.xchg(1'b0),
 	.oa(s2_mmux2_lhs),
 	.ob(s2_mmux2_rhs)
 );

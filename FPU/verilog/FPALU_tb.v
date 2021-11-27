@@ -15,13 +15,23 @@ module FPALU_tb();
   
 	wire          din_uni_a_sgn    = a[28];
 	wire [5:0]    din_uni_a_exp    = a[27:22];
-	wire [21:0]   din_uni_a_man_dn = a[21:0];
+	reg  [21:0]   din_uni_a_man_dn;
 	wire          din_uni_b_sgn    = b[28];
 	wire [5:0]    din_uni_b_exp    = b[27:22];
-	wire [21:0]   din_uni_b_man_dn = b[21:0];   // Always Left-Aligned, Denorm
+	reg  [21:0]   din_uni_b_man_dn;
 	wire          dout_uni_y_sgn;
 	wire [5:0]    dout_uni_y_exp; 
 	wire [21:0]   dout_uni_y_man_dn;
+
+	always @* begin
+		if(opcode==2'b10) begin
+			din_uni_a_man_dn = a[21:0];
+			din_uni_b_man_dn = b[21:0];
+		end else begin
+			din_uni_a_man_dn = {1'b1,a[20:0]};	// Force norm
+			din_uni_b_man_dn = {1'b1,b[20:0]};	// Force norm
+		end
+	end
 
 	FPALU dut(
 		.clk(clk), .opcode(opcode),
