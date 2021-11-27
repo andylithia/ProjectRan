@@ -23,7 +23,6 @@ module FPALU (
 	output          dout_uni_y_sgn,
 	output [5:0]    dout_uni_y_exp, 
 	output [21:0]   dout_uni_y_man_dn
-
 );
 
 // This option adds extra real number registers to assist debugging
@@ -48,25 +47,20 @@ localparam OPC_ADDSKIP = 2'b01;	// We found a zero, skip the addition entirely
 // To set this into sleep mode, just disable the clock
 localparam OPC_ADD29NORM = 2'b00;	// Add and Normalize (last accumulation)
 
-
-// ----- PIPELINE STAGE 1 -----
-//
-reg [OPSIZE-1:0] s1_opcode;
-always @* begin
-	s1_opcode = opcode;
-end
-
 // Input Wiring
-wire [AL_MANSIZE-1:0]	din_AL_mana = din_uni_a_man_dn;	// 22b Denormalized
-wire [AL_MANSIZE-1:0]	din_AL_manb = din_uni_b_man_dn;	// 22b Denormalized
+// Dummy Connection for AL
+wire [AL_EXPSIZE-1:0]   din_AL_expa = din_uni_a_exp;	//
+wire [AL_EXPSIZE-1:0]   din_AL_expb = din_uni_b_exp;	//
+wire [AL_MANSIZE-1:0]   din_AL_mana = din_uni_a_man_dn;	// 22b Denormalized
+wire [AL_MANSIZE-1:0]   din_AL_manb = din_uni_b_man_dn;	// 22b Denormalized
+
+// Right-Aligned for ML
 wire [ML_EXPSIZE:0]     din_ML_expa = {1'b0,din_uni_a_exp[ML_EXPSIZE-1:0]};
 wire [ML_EXPSIZE:0]     din_ML_expb = {1'b0,din_uni_b_exp[ML_EXPSIZE-1:0]};
-
+reg [ML_MANSIZE-1:0]    din_ML_mana;
+reg [ML_MANSIZE-1:0]    din_ML_manb;
 // Dealing with denorm number
 wire s1_ml_ea_is_denorm = (din_ML_expa == ML_EXPBIAS);
-// wire s1_ml_eb_is_denorm = (din_ML_expb == ML_EXPBIAS);
-reg [ML_MANSIZE-1:0]  din_ML_mana;
-reg [ML_MANSIZE-1:0]  din_ML_manb;
 always @* begin
 	if(s1_ml_ea_is_denorm)
 		din_ML_mana = {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0};
@@ -76,50 +70,60 @@ always @* begin
 end
 
 `ifdef DEBUGINFO
-	real a_real;	// Can be Normalized
-	real b_real_dn;	// Always Denorm
-	real y_real_dn;	// Always Denorm
-	real y_expected_ml;	// Multiply
-	real y_expected_ad;	// Add
-	real a_real_s2;
-	real b_real_s2;
-	real a_real_s3;
-	real b_real_s3;
-	real a_real_s4;
-	real b_real_s4;
-	real a_real_s5;
-	real b_real_s5;
-	integer many_expected_ml;
+	real a_real_FP16  [3:0];	// Can be Normalized
+	real a_real_FP29i [3:0];	// Always Denorm
+	real b_real_FP16i [3:0];	// Always Denorm
+	real b_real_FP29i [3:0];	// Always Denorm
+	real a_real_FP16_s5;		// Icarus Doesn't support real array dumping?
+	real a_real_FP29i_s5;		// Written Explicitly...
+	real b_real_FP16i_s5;		// |
+	real b_real_FP29i_s5;		// /
+	real y_real_FP29i;			// Always Denorm, Used in OP: ADDSKIP, ADD29i, MUL16i
+	real y_real_FP29;			// Always Denorm, Used in OP: ADD29NORM
+	real y_expected_ml;		// Reference Result of Multiplication
+	real y_expected_ad;		// Reference Result of Addition
+	integer many_expected_ml;	
 
 	real mul_k1;
 	real mul_ik1;
-
+	
 	always @* begin
-		a_real        = (1.0-2.0*din_uni_a_sgn) * din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
-		b_real_dn     = (1.0-2.0*din_uni_b_sgn) * din_ML_manb * 2.0**(-10.0) * 2**(din_ML_expb-15.0);
-		y_real_dn     = (1.0-2.0*dout_uni_y_sgn) * dout_uni_y_man_dn * 2.0**(-22.0 + dout_uni_y_exp - 31.0);
-		y_expected_ml = a_real_s5 * b_real_s5;
-		y_expected_ad = a_real_s5 + b_real_s5;
+		a_real_FP16  [0] = (1.0-2.0*din_uni_a_sgn) * din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
+		a_real_FP29i [0] = (1.0-2.0*din_uni_a_sgn) * din_AL_mana * 2.0**(-21.0) * 2**(din_AL_expa-31.0);
+		b_real_FP16i [0] = (1.0-2.0*din_uni_b_sgn) * din_ML_manb * 2.0**(-10.0) * 2**(din_ML_expb-15.0);
+		b_real_FP29i [0] = (1.0-2.0*din_uni_b_sgn) * din_AL_manb * 2.0**(-21.0) * 2**(din_AL_expb-31.0);
+		y_real_FP29i     = (1.0-2.0*dout_uni_y_sgn) * dout_uni_y_man_dn * 2.0**(-22.0 + dout_uni_y_exp - 31.0);
+		y_expected_ml = a_real_FP16_s5  * b_real_FP16i_s5;
+		y_expected_ad = a_real_FP29i_s5 + b_real_FP29i_s5;
 		many_expected_ml = din_ML_mana * din_ML_manb;
-		mul_k1 = y_real_dn / y_expected_ml;
+		mul_k1 = y_real_FP29i / y_expected_ml;
 		mul_ik1 = 1/mul_k1;
 	end
-	
-	always @(posedge clk) begin
-		a_real_s2 <= a_real;
-		b_real_s2 <= b_real_dn;
-		a_real_s3 <= a_real_s2;
-		b_real_s3 <= b_real_s2;
-		a_real_s4 <= a_real_s3;
-		b_real_s4 <= b_real_s3;
-		a_real_s5 <= a_real_s4;
-		b_real_s5 <= b_real_s4;
-	end
 
+	integer i;
+	always @(posedge clk) begin
+		for(i=3;i>0;i=i-1) begin
+			a_real_FP16 [i]  <= a_real_FP16 [i-1];
+			a_real_FP29i [i] <= a_real_FP29i [i-1];
+			b_real_FP16i [i] <= b_real_FP16i [i-1];
+			b_real_FP29i [i] <= b_real_FP29i [i-1];
+		end
+		a_real_FP16_s5  <= a_real_FP16[3];
+		a_real_FP29i_s5 <= a_real_FP29i[3];
+		b_real_FP16i_s5 <= b_real_FP16i[3];
+		b_real_FP29i_s5 <= b_real_FP29i[3];
+	end
 `endif /* DEBUGINFO */
 
 
+// +------------------------------------+
+// |          PIPELINE STAGE 1          |
+// +------------------------------------+
 
+reg [OPSIZE-1:0] s1_opcode;
+always @* begin
+	s1_opcode = opcode;
+end
 
 // ACHTUNG:
 // You MUST deal with zeros somewhere, maybe here.
@@ -164,8 +168,9 @@ generate
 	end
 endgenerate
 
-// ----- PIPELINE STAGE 2 -----
-//
+// +------------------------------------+
+// |          PIPELINE STAGE 2          |
+// +------------------------------------+
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s2_opcode_r;
 reg [AL_EXPSIZE-1:0] s2_expa_r;		// Save Exponents for S5
@@ -264,13 +269,14 @@ always @* begin
 	s2_ps1 =          {3'b001,{!s2_br4_s_r[3]},pp3};
 	s2_ps1 = s2_ps1 + {1'b1,{!s2_br4_s_r[4]},pp4,1'b0,s2_br4_s_r[3]};
 	s2_ps1 = s2_ps1 + {pp5,1'b0,s2_br4_s_r[4],2'b0};
-
 end
 
 
-// ----- PIPELINE STAGE 3 -----
+// +------------------------------------+
+// |          PIPELINE STAGE 3          |
+// +------------------------------------+
 //
-// SEGMENT 1. Pipeline Signal Relay
+// Pipeline Signal Relay
 reg [OPSIZE-1:0]     s3_opcode_r;
 reg [AL_EXPSIZE-1:0] s3_expa_r;		// Save Exponents for S5
 reg [AL_MANSIZE-1:0] s3_expb_r;		// /
@@ -339,10 +345,6 @@ always @(*) begin
 	end
 end
 
-
-// For Debug
-// wire [21:0] s3_mulout1 = {{5{s3_ps0_r[16]}}, s3_ps0_r}+ {                  s3_ps1_r, 1'b0, s3_s2_r, 4'b0} + {11'b0,        s3_s5_r,           10'b0};
-
 cla_adder #(.DATA_WID(AL_MANSIZE+1)) s3_s4_u_cla(
 	.in1      (s3_alumux_lhs),
 	.in2      (s3_alumux_rhs),
@@ -361,7 +363,9 @@ always @* begin
 	endcase
 end
 
-// ----- PIPELINE STAGE 4 -----
+// +------------------------------------+
+// |          PIPELINE STAGE 4          |
+// +------------------------------------+
 // 
 // General Note for S4 and S5:
 //  In a regular FP Pipeline, all operations need to perform zero detect
@@ -393,7 +397,10 @@ wire [4:0]  s4_lzd;		//
 wire [31:0] s4_lzdi = {s4_many_r,9'b0};
 count_lead_zero #(.W_IN(32)) s4_u_lzd(.in(s4_lzdi), .out(s4_lzd));
 
-// ----- PIPELINE STAGE 5 -----
+// +------------------------------------+
+// |          PIPELINE STAGE 5          |
+// +------------------------------------+
+// 
 // UNIFIED OUTPUT STAGE: Final Shifting, Truncation, etc
 // Pipeline Signal Relay
 reg [OPSIZE-1:0]     s5_opcode_r;
