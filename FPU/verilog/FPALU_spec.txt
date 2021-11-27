@@ -1,0 +1,42 @@
+FPALU Input Data Type Specifications
+
+
+//            FORMAT  SIGN  EXP  MANTISSA  WIDTH
+//  RAW IEEE  FP16    1     5    10        16
+//  INPUT     FP16i   1     5    11        17
+//  POST MUL  FP29i   1     6    22        29
+//  POST ACC  FP29i   1     6    22        29
+//  OUTPUT    FP16    1     5    10        16 
+
+-----
+
+// Adder:
+// Addsub Control Signals:
+//          ea > eb     ea < eb
+//            SRB         SRA
+// sa sb  sy    my     sy    my
+//  0  0   0  ma + mb   0  mb + ma
+//  0  1   0  ma - mb   1  mb - ma
+//  1  0   1  ma - mb   0  mb - ma
+//  1  1   1  ma + mb   1  mb + ma
+// MANA is always Denormalized
+// MANB is always Denormalized
+
+-----
+
+// Multiply:
+// MANA is FP16 FIR Input:		   Regular FP16, Most likely Normalized
+// MANB is Coefficient Input: 	   Always Denormalized
+// MANY is FIR_input.*Coefficient: Always Denormalized
+
+// ExpA:
+if(EXPA == BIAS)
+    # Denormalized
+    {MANA,1'b0} * 2**(-10) * 2**(EXPA-15)
+else
+    # Normalized
+    {1'b1,MANA} * 2**(-10) * 2**(EXPA-15)
+
+// ExpB:
+    {1'b1,MANB} * 2**(-10) * 2**(EXPB-15)
+

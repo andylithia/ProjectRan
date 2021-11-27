@@ -195,10 +195,13 @@ module booth_ppgen_r4 #(
 		o = {(DWIDTH){1'bx}};
 		case(br4)
 		3'b000: o = 0;
+		3'b010: o = {1'b0,a};
 		3'b001:	o = {1'b0,a};
-		3'b010: o = {a,1'b0};
-		3'b111:	o = {1'b1,~a};
-		3'b110: o = {~a,1'b1};
+		3'b011: o = {a,1'b0};
+		3'b100: o = {~a,1'b1};
+		3'b101:	o = {1'b1,~a};
+		3'b110:	o = {1'b1,~a};
+		3'b111: o = {DWIDTH+1{1'b1}};
 		endcase
 	end
 endmodule /* booth_ppgen_r4 */
