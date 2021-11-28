@@ -25,6 +25,8 @@ wire clk_fast   = clk2;
 wire clk_fast_n = ~clk_fast;
 reg [5:0] ss_r;		// Control State Register
 reg [7:0] cycle_cnt_r;
+
+// Note: cycle_* dictates the current state at the INPUT OF ALU
 wire cycle_load      = ss_r[0];
 wire cycle_mul       = ss_r[1];
 wire cycle_acc_thru  = ss_r[2];
@@ -110,11 +112,10 @@ end
 // |     Part 3. ALU Data MUX     |
 // +------------------------------+
 // 
-
-wire [17:0] cbuf_q_fp16;	// 10bit mantissa...?
+wire [17:0] cbuf_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
 wire [16:0] dmem_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
-wire [17:0] cmem_q_fp16i;	// 11bit mantissa...?
-wire [29:0] regf_q_fp29i;
+wire [17:0] cmem_q_fp16i;	// 11bit mantissa, raw, denormalized data
+wire [29:0] regf_q_fp29i;	// 
 
 // Mapping Din (FP16) to FPALU input
 wire [29:0] alumux_cbuf_fp16;
@@ -155,7 +156,9 @@ assign alumux_regf_fp29i = regf_q_fp29i;	// FP29i
 assign alumux_self_fp29i = alu_y_29i;		// from the output,  FP29i
 
 always @* begin
-	alu_opcode = 2'bxx;									// Default (doing nothing, can be any value)
+	alu_opcode = 2'bxx;						// Default (doing nothing, can be any value)
+	// Note: all conditions are if... if... rather than if... else if...
+	//       because these conditions are mutally exclusive
 	if(cycle_load) begin					// MUL16i First Cycle
 		alu_a_29i = alumux_cbuf_fp16;
 		alu_b_29i = alumux_cmem_fp16i;
@@ -169,12 +172,12 @@ always @* begin
 	end         
 
 	if(cycle_acc_thru) begin				// ADD29i First 5 Cycles Feed-Thru
-		alu_a_29i = alumux_self_fp29i;
+		alu_a_29i = alumux_self_fp29i;		// the REGFile is bypassed
 		alu_b_29i = alumux_acc_fp29i;
 		alu_opcode = 2'b11;
 	end 
 
-	if(cycle_acc) begin						// ADD29i Subseq. Cycles
+	if(cycle_acc) begin						// ADD29i Subseq. Cycles (58x)
 		alu_a_29i = alumux_regf_fp29i;
 		alu_b_29i = alumux_acc_fp29i;
 		alu_opcode = 2'b11;
@@ -187,6 +190,20 @@ always @* begin
 	end
 end
 
+// ALU instance
+FPALU u_fpalu(
+	.clk               (alu_clk   ),
+	.opcode            (alu_opcode),
+	.din_uni_a_sgn     (alu_a_s   ),
+	.din_uni_a_exp     (alu_a_e   ),
+	.din_uni_a_man_dn  (alu_a_m   ),
+	.din_uni_b_sgn     (alu_b_s   ),
+	.din_uni_b_exp     (alu_b_e   ),
+	.din_uni_b_man_dn  (alu_b_m   ),
+	.dout_uni_y_sgn    (alu_y_s   ),
+	.dout_uni_y_exp    (alu_y_e   ),
+	.dout_uni_y_man_dn (alu_y_m   )
+);
 
 `ifdef DEBUGINFO
 integer alu_clk_cnt;
