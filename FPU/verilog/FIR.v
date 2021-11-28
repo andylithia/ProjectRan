@@ -1,6 +1,6 @@
 // Implementation of the FIR Control Logic & Wrapper
 // For the W4823 FIR Project
-// Anhang Li - Nov. 19 2021
+// Anhang Li - Nov. 27 2021
 
 module W4823_FIR(
 	input           rst_n,		//
@@ -23,55 +23,71 @@ module W4823_FIR(
 
 wire clk_fast   = clk2;
 wire clk_fast_n = ~clk_fast;
-reg [5:0] ss_r;		// Control State Register
-reg [7:0] cycle_cnt_r;
+reg [6:0] ss_r;		// Control State Register
+reg [6:0] cycle_cnt_r;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 wire cycle_load      = ss_r[0];
-wire cycle_mul       = ss_r[1];
-wire cycle_acc_thru  = ss_r[2];
-wire cycle_acc       = ss_r[3];
-wire cycle_accnorm   = ss_r[4];
-wire cycle_sleep     = ss_r[5];
+wire cycle_mul_ndav  = ss_r[1];
+wire cycle_mul       = ss_r[2];
+wire cycle_acc_thru  = ss_r[3];
+wire cycle_acc       = ss_r[4];
+wire cycle_accnorm   = ss_r[5];
+wire cycle_sleep     = ss_r[6];
 always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
 		ss_r        <= 1;
 		cycle_cnt_r <= 0;
 	end else begin
 		case(ss_r)
-		6'b000001: begin					// DMEM WR
-			ss_r <= 6'b000010;
+		7'b0000001: begin					// DMEM WR & MUL16i First Cycle
+			ss_r <= 7'b0000010;
 		end
-		6'b000010: begin
-			if(cycle_cnt_r==8'd62) begin	// Constant MUL16i
-				ss_r        <= 6'b000100;
+
+		7'b0000010: begin					// MUL16i First 4 Cycles
+			if(cycle_cnt_r==8'd2) begin	
+				ss_r        <= 7'b0000100;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
-		6'b000100: begin
-			if(cycle_cnt_r==8'd5) begin		// Accumulation ADD29i Thru
-				ss_r        <= 6'b001000;
+
+		7'b0000100: begin
+			if(cycle_cnt_r==8'd58) begin	// Constant MUL16i
+				ss_r        <= 7'b0001000;
+				cycle_cnt_r <= 0;	
+			end else begin
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+			end
+		end
+		7'b0001000: begin
+			if(cycle_cnt_r==8'd4) begin		// Accumulation ADD29i Thru
+				ss_r        <= 7'b0010000;
 				cycle_cnt_r <= 0;
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
-		6'b001000: begin
-			if(cycle_cnt_r==8'd63) begin	// Accumulation ADD29i
-				ss_r        <= 6'b010000;
+		7'b0010000: begin
+			if(cycle_cnt_r==8'd57) begin	// Accumulation ADD29i
+				ss_r        <= 7'b0100000;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
-		6'b010000: begin					// Accumulation Normalize
-			ss_r <= 6'b100000;
+		7'b0100000: begin					// Accumulation Normalize
+			if(cycle_cnt_r==8'd4) begin
+				ss_r        <= 7'b1000000;
+				cycle_cnt_r <= 0;	
+			end else begin
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+			end
 		end
-		6'b100000: begin					// Sleep
+		7'b1000000: begin					// Sleep
 			if(cycle_cnt_r==8'd122) begin
-				ss_r        <= 6'b000001;
+				ss_r        <= 7'b0000001;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
@@ -91,21 +107,68 @@ always @(negedge clk_fast) begin
 	if(cycle_load) cycle_load_dly_r <= 1;
 	else           cycle_load_dly_r <= 0;
 end
-wire din_latch = cycle_load &~cycle_load_dly_r;
-wire dmem_clk  = (cycle_load|cycle_mul)&clk_fast;	// DMEM Clock
+
+// To remove clock hazard in DMEM clock gating
+// Without this, the last cycle may end 1/2 clock period earlier
+reg cycle_mul_dly1_r;
+reg cycle_mul_dly2_r;
+reg cycle_mul_dly3_r;
+wire cycle_mul_dly_r = cycle_mul_dly1_r | cycle_mul_dly2_r;
+always @(posedge alu_clk) begin
+	if(cycle_mul_ndav|cycle_mul)   cycle_mul_dly1_r = 1;
+	else                 cycle_mul_dly1_r = 0;
+end
+always @(negedge alu_clk) begin
+	if(cycle_mul_dly1_r) cycle_mul_dly2_r = 1;
+	else                 cycle_mul_dly2_r = 0;
+	if(cycle_mul_ndav|cycle_mul) cycle_mul_dly3_r = 1;
+	else                         cycle_mul_dly3_r = 0;
+end
+
+
 // DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
+wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
+wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul|cycle_mul_dly_r)&clk_fast;	// DMEM Clock
 
-wire alu_clk = (cycle_load_dly_r|cycle_mul|cycle_acc_thru|cycle_acc|cycle_accnorm) & clk_fast;
+wire alu_clk = (cycle_load_dly_r|cycle_mul_ndav|cycle_mul|cycle_acc_thru|cycle_acc|cycle_accnorm) & clk_fast;
 
-wire regf_wr;
-wire regf_clk;
 reg [5:0]	dmem_addr_r;
+reg [5:0]   cmem_addr_r;
 
 // Truncated, loops back automatically when dmem_addr_r >= 64;
 always @(negedge dmem_clk or negedge rst_n) begin
 	if(~rst_n) dmem_addr_r <= 0;
 	else       dmem_addr_r <= dmem_addr_r + 1;
 end
+
+always @(posedge din_latch or negedge dmem_clk) begin
+	if(din_latch) cmem_addr_r = 0;
+	else          cmem_addr_r = cmem_addr_r + 1;
+end
+
+// +--------------------------------------+
+// |     Part 3. REGFile Data Control     |
+// +--------------------------------------+
+// 
+wire         regf_wr = (cycle_mul|cycle_mul_dly3_r)&~cycle_mul_ndav;
+wire         regf_clk = (regf_wr|cycle_acc_thru|cycle_acc|cycle_accnorm)&& alu_clk;
+//reg          regf_wr_dly_r;
+reg [5:0]    regf_addr_r;
+
+always @(negedge regf_clk or posedge cycle_load) begin
+	if(cycle_load) 
+		regf_addr_r <= 6'd63;
+	else                
+		regf_addr_r <= regf_addr_r + 1;
+end
+/*
+always @(negedge regf_clk or negedge regf_wr) begin
+	if(regf_wr) 
+		regf_wr_dly_r <= 1;
+	else          
+		regf_wr_dly_r <= 0;
+end
+*/
 
 
 // +------------------------------+
@@ -127,8 +190,6 @@ wire [29:0] alumux_acc_fp29i;
 
 reg [29:0]  alu_acc_29i_r;
 reg [1:0]   alu_opcode;
-reg [5:0]   cmem_addr_r;
-reg [5:0]   regf_addr_r;
 
 // ALU instance connections
 wire        alu_a_s = alu_a_29i[29];		//  1b
@@ -154,7 +215,9 @@ assign alumux_acc_fp29i  = alu_acc_29i_r;	// from accumulator, FP29i
 assign alumux_cmem_fp16i = {cmem_q_fp16i[17], 1'bx, cmem_q_fp16i[16:11], {11{1'bx}}, cmem_q_fp16i[10:0]};	// FP16i
 assign alumux_regf_fp29i = regf_q_fp29i;	// FP29i
 assign alumux_self_fp29i = alu_y_29i;		// from the output,  FP29i
-
+`ifdef DEBUGINFO
+integer dbg_alumux_state;
+`endif /* DEBUGINFO */
 always @* begin
 	alu_opcode = 2'bxx;						// Default (doing nothing, can be any value)
 	// Note: all conditions are if... if... rather than if... else if...
@@ -163,34 +226,50 @@ always @* begin
 		alu_a_29i = alumux_cbuf_fp16;
 		alu_b_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 0;
+		`endif /* DEBUGINFO */
 	end
 	
-	if(cycle_mul) begin						// MUL16i Subseq. Cycles (63x)
+	if(cycle_mul|cycle_mul_ndav) begin						// MUL16i Subseq. Cycles (63x)
 		alu_a_29i = alumux_dmem_fp16;
 		alu_a_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 1;
+		`endif /* DEBUGINFO */
 	end         
 
 	if(cycle_acc_thru) begin				// ADD29i First 5 Cycles Feed-Thru
 		alu_a_29i = alumux_self_fp29i;		// the REGFile is bypassed
 		alu_b_29i = alumux_acc_fp29i;
 		alu_opcode = 2'b11;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 2;
+		`endif /* DEBUGINFO */
 	end 
 
 	if(cycle_acc) begin						// ADD29i Subseq. Cycles (58x)
 		alu_a_29i = alumux_regf_fp29i;
 		alu_b_29i = alumux_acc_fp29i;
 		alu_opcode = 2'b11;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 3;
+		`endif /* DEBUGINFO */
 	end 
 
 	if(cycle_accnorm) begin					// ADD29NORM Final Cycle
 		alu_a_29i = alumux_regf_fp29i;		// Last ACC input
 		alu_b_29i = alumux_acc_fp29i;
 		alu_opcode = 2'b00;		
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 4;
+		`endif /* DEBUGINFO */
 	end
 end
 
 // ALU instance
+/*
 FPALU u_fpalu(
 	.clk               (alu_clk   ),
 	.opcode            (alu_opcode),
@@ -204,12 +283,27 @@ FPALU u_fpalu(
 	.dout_uni_y_exp    (alu_y_e   ),
 	.dout_uni_y_man_dn (alu_y_m   )
 );
+*/
+
+// +--------------------------+
+// |     Part 4. Memories     |
+// +--------------------------+
+// 
+
+
+
 
 `ifdef DEBUGINFO
-integer alu_clk_cnt;
+integer dbg_alu_clk_cnt;
+reg     dbg_alu_outrdy;
 always @(posedge alu_clk or posedge cycle_load) begin
-	if(cycle_load) alu_clk_cnt = 0;
-	else           alu_clk_cnt = alu_clk_cnt + 1;
+	if(cycle_load) dbg_alu_clk_cnt <= 0;
+	else           dbg_alu_clk_cnt <= dbg_alu_clk_cnt + 1;
+	
+	if(cycle_load)              dbg_alu_outrdy <= 0;
+	else begin
+		if(dbg_alu_clk_cnt==3)  dbg_alu_outrdy <= 1;
+	end
 end 
 
 `endif /* DEBUGINFO */
