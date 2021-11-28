@@ -1,3 +1,6 @@
+// Implementation of a behavioural SRAM
+// For the W4823 FIR Project
+// Anhang Li - Nov. 27 2021
 
 `timescale 1ns/1fs
 module sp_sram #(

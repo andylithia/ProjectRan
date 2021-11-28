@@ -1,3 +1,9 @@
+// FIR topmodule Testbench
+// 1. Write CMEM
+// 2. Generate Din
+// 3. Record Dout
+// A.L. - Nov. 27 2021
+
 `timescale 1ns/1fs
 module W4823_FIR_tb;
 

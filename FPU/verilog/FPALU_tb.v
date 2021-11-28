@@ -1,6 +1,9 @@
 // FPALU TB
+// A.L. - Nov. 27 2021
+
 // Excite the ALU with some randomly generated binary data
 // To verify the output, use python script.
+
 `timescale 1ns/1ps
 
 module FPALU_tb();
