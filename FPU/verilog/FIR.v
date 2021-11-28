@@ -169,6 +169,7 @@ always @(posedge cycle_dinlatch or negedge dmem_clk) begin
 end
 
 
+wire alu_clk = ~cycle_sleep & clk_fast;
 // To remove clock hazard in DMEM clock gating
 // Without this, the last cycle may end 1/2 clock period earlier
 reg cycle_mul_dly1_r;
@@ -187,7 +188,6 @@ end
 wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
 wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru_dly1_r & clk_fast;	// DMEM Clock
 
-wire alu_clk = ~(cycle_sleep&cycle_dinlatch) & clk_fast;
 
 
 // Truncated, loops back automatically when dmem_addr_r >= 64;
@@ -206,7 +206,7 @@ end
 // +--------------------------------------+
 // 
 reg regf_wr;
-wire regf_clken = (regf_wr|cycle_acc_thru|cycle_acc);
+wire regf_clken = (regf_wr|cycle_acc_thru);
 wire regf_clk   = regf_clken & alu_clk;
 reg [5:0]    regf_addr_r;
 /*
