@@ -21,10 +21,11 @@ module W4823_FIR(
 // |     Part 1. State Controller     |
 // +----------------------------------+
 //
-wire clk_fast   = clk2;
-wire clk_fast_n = ~clk_fast;
+wire       clk_fast   = clk2;
+wire       clk_fast_n = ~clk_fast;
 reg [15:0] ss_r;		// Control State Register
-reg [6:0]  cycle_cnt_r;
+reg [7:0]  cycle_cnt_r;
+reg        first_cycle_r;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 wire cycle_load      = ss_r[0]; // 1
@@ -47,8 +48,10 @@ wire cycle_dinlatch  = ss_r[15]; // 1
 // To get ALU input mux, xor the nearby two states
 always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
-		ss_r        <= 16'b1000_0000_0000_0001;
-		cycle_cnt_r <= 0;
+		// Sleep Away the First Cycle
+		ss_r          <= 16'b0110_0000_0000_0000;
+		cycle_cnt_r   <= 8'd105;
+		first_cycle_r <= 1'b1;
 	end else begin
 		case(ss_r)
 		16'b1000_0000_0000_0001:			// DMEM WR & MUL16i First Cycle
@@ -131,8 +134,9 @@ always @(posedge clk_fast or negedge rst_n) begin
 		end
 		16'b0110_0000_0000_0000: begin					// Sleep
 			if(cycle_cnt_r==8'd104) begin
-				ss_r        <= 16'b1100_0000_0000_0000;
-				cycle_cnt_r <= 0;	
+				ss_r          <= 16'b1100_0000_0000_0000;
+				cycle_cnt_r   <= 0;	
+				first_cycle_r <= 0;
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
@@ -154,9 +158,17 @@ always @(negedge clk_fast) begin
 	else           cycle_load_dly_r <= 0;
 end
 
-reg dmem_wr_r;
+// CMEM can be written-to in the first 256-clk cycle
+// from the outside
+wire        cmem_wr = first_cycle_r;	// Internal
+wire        cmem_clk = cload;			// External
+wire [5:0]  cmem_addr;					// Muxed
+reg  [5:0]  cmem_addr_r;				// Internal
+wire [16:0] cmem_din_FP16i = cin;		// External 
+
+reg         dmem_wr_r;
 reg [5:0]	dmem_addr_r;
-reg [5:0]   cmem_addr_r;
+assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
 always @(posedge cycle_dinlatch or negedge dmem_clk) begin
 	if(cycle_dinlatch&~cycle_load) begin
 		dmem_wr_r   <= 1;

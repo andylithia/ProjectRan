@@ -26,14 +26,14 @@ always @(posedge clk_fast or negedge rst_n) begin
 end
 
 initial begin
+    $dumpfile("W4823_FIR_tb.vcd");
+    $dumpvars(0,W4823_FIR_tb);
     rst_n = 1;
     clk_fast = 0;
     #1 rst_n = 0;
     #1 rst_n = 1;
     #193.3125 clk_fast = 1;
     //#100000
-    $dumpfile("W4823_FIR_tb.vcd");
-    $dumpvars(0,W4823_FIR_tb);
 	#250000
     $finish;
 end
