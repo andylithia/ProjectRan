@@ -1,3 +1,5 @@
+
+`timescale 1ns/1fs
 module sp_sram #(
 	parameter ADDR_WIDTH = 4,
 	parameter DATA_WIDTH = 16,

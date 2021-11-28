@@ -2,6 +2,7 @@
 // For the W4823 FIR Project
 // Anhang Li - Nov. 27 2021
 
+`timescale 1ns/1fs
 module W4823_FIR(
 	input           rst_n,		//
 	input           clk1,		// Slow Clock 
@@ -226,13 +227,12 @@ end
 // |     Part 3. ALU Data MUX     |
 // +------------------------------+
 // 
-wire [17:0] cbuf_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
-wire [16:0] dmem_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
+wire [15:0] dmem_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
 wire [16:0] cmem_q_fp16i;	// 11bit mantissa, raw, denormalized data
 wire [29:0] regf_q_fp29i;	// 
 
 // Mapping Din (FP16) to FPALU input
-wire [29:0] alumux_cbuf_fp16;
+wire [29:0] alumux_din_fp16;
 wire [29:0] alumux_dmem_fp16;
 wire [29:0] alumux_cmem_fp16i;
 wire [29:0] alumux_self_fp29i; 
@@ -279,8 +279,8 @@ always @(posedge cycle_acc_p21)
 
 // ALL FP16 Data Connectors are RIGHT ALIGNED
 // MUX of input A
-assign alumux_cbuf_fp16  = {cbuf_q_fp16[16], 1'bx, cbuf_q_fp16[15:10], {12{1'bx}}, cbuf_q_fp16[9:0]}; 		// FP16
-assign alumux_dmem_fp16  = {dmem_q_fp16[16], 1'bx, dmem_q_fp16[15:10], {12{1'bx}}, dmem_q_fp16[9:0]}; 		// FP16
+assign alumux_din_fp16  = {din[15], 1'bx, din[14:10], {12{1'bx}}, din[9:0]}; 		// FP16
+assign alumux_dmem_fp16  = {dmem_q_fp16[15], 1'bx, dmem_q_fp16[14:10], {12{1'bx}}, dmem_q_fp16[9:0]}; 		// FP16
 
 // MUX of input B
 assign alumux_cmem_fp16i = {cmem_q_fp16i[16], 1'bx, cmem_q_fp16i[15:11], {11{1'bx}}, cmem_q_fp16i[10:0]};	// FP16i
@@ -294,7 +294,7 @@ always @* begin
 	// Note: all conditions are if... if... rather than if... else if...
 	//       because these conditions are mutally exclusive
 	if(cycle_dinlatch&cycle_load) begin					// MUL16i First Cycle
-		alu_a_29i = alumux_cbuf_fp16;
+		alu_a_29i = alumux_din_fp16;
 		alu_b_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
@@ -427,6 +427,18 @@ FPALU u_fpalu(
 
 `else
 
+// DMEM: 16b x 64w
+sp_sram #(
+	.ADDR_WIDTH(6),
+	.DATA_WIDTH(16)
+) u_dmem (
+	.clk  (dmem_clk   ),
+	.addr (dmem_addr_r),
+	.din  (din        ),
+	.wr   (dmem_wr_r  ),
+	.qout (dmem_q_fp16)
+);
+
 // CMEM: 17b x 64w
 sp_sram #(
 	.ADDR_WIDTH(6),
@@ -439,7 +451,17 @@ sp_sram #(
 	.qout (cmem_q_fp16i  )
 );
 
-
+ // REGFile: 29b x 59w
+sp_sram #(
+	.ADDR_WIDTH(6),
+	.DATA_WIDTH(30)
+) u_regf (
+	.clk  (regf_clk         ),
+	.addr (regf_addr_r      ),
+	.din  (alumux_self_fp29i),
+	.wr   (regf_wr_r        ),
+	.qout (regf_q_fp29i     )
+);
 `endif /* USE_VENDOR_MEMORY */
 
 
