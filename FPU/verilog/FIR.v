@@ -229,37 +229,37 @@ end
 // 
 wire [15:0] dmem_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
 wire [16:0] cmem_q_fp16i;	// 11bit mantissa, raw, denormalized data
-wire [29:0] regf_q_fp29i;	// 
+wire [28:0] regf_q_fp29i;	// 
 
 // Mapping Din (FP16) to FPALU input
-wire [29:0] alumux_din_fp16;
-wire [29:0] alumux_dmem_fp16;
-wire [29:0] alumux_cmem_fp16i;
-wire [29:0] alumux_self_fp29i; 
-wire [29:0] alumux_regf_fp29i;
-wire [29:0] alumux_acc_fp29i;
+wire [28:0] alumux_din_fp16;
+wire [28:0] alumux_dmem_fp16;
+wire [28:0] alumux_cmem_fp16i;
+wire [28:0] alumux_self_fp29i; 
+wire [28:0] alumux_regf_fp29i;
+wire [28:0] alumux_acc_fp29i;
 
 reg [1:0]   alu_opcode;
 
 // ALU instance connections
-reg [29:0]  alu_a_29i_r;
-reg [29:0]  alu_b_29i_r;
-reg [29:0]  alu_a_29i;
-reg [29:0]  alu_b_29i;
-wire        alu_a_s = alu_a_29i_r[29];		//  1b
-wire [6:0]  alu_a_e = alu_a_29i_r[28:22];	//	7b
+reg [28:0]  alu_a_29i_r;
+reg [28:0]  alu_b_29i_r;
+reg [28:0]  alu_a_29i;
+reg [28:0]  alu_b_29i;
+wire        alu_a_s = alu_a_29i_r[28];		//  1b
+wire [5:0]  alu_a_e = alu_a_29i_r[27:22];	//	6b
 wire [21:0] alu_a_m = alu_a_29i_r[21:0];	//  22b
-wire        alu_b_s = alu_b_29i_r[29];		//  1b
-wire [6:0]  alu_b_e = alu_b_29i_r[28:22];	//	7b
+wire        alu_b_s = alu_b_29i_r[28];		//  1b
+wire [5:0]  alu_b_e = alu_b_29i_r[27:22];	//	6b
 wire [21:0] alu_b_m = alu_b_29i_r[21:0];	//  22b
 wire        alu_y_s;
-wire [6:0]	alu_y_e;
+wire [5:0]	alu_y_e;
 wire [21:0]	alu_y_m;
-wire [29:0] alu_y_29i = {alu_y_s, alu_y_e, alu_y_m};
+wire [28:0] alu_y_29i = {alu_y_s, alu_y_e, alu_y_m};
 
-reg [29:0] alumux_regac_fp29i_r;
-reg [29:0] alumux_regd_fp29i_r;
-reg [29:0] alumux_rege_fp29i_r;
+reg [28:0] alumux_regac_fp29i_r;
+reg [28:0] alumux_regd_fp29i_r;
+reg [28:0] alumux_rege_fp29i_r;
 
 wire alumux_regac_latch = (cycle_acc_p1&~cycle_acc_cwr)&alu_clk|cycle_acc_dwr;
 
@@ -302,9 +302,9 @@ always @* begin
 		`endif /* DEBUGINFO */
 	end
 
-	if(cycle_mul_ndav) begin
+	if((cycle_mul_ndav|cycle_mul)&~cycle_acc_thru) begin
 		alu_a_29i = alumux_dmem_fp16;
-		alu_a_29i = alumux_cmem_fp16i;
+		alu_b_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 1;
@@ -403,8 +403,8 @@ always @* begin
 end
 
 // ALU instance
-/*
-FPALU u_fpalu(
+
+FPALU_dummy u_fpalu(
 	.clk               (alu_clk   ),
 	.opcode            (alu_opcode),
 	.din_uni_a_sgn     (alu_a_s   ),
@@ -417,7 +417,7 @@ FPALU u_fpalu(
 	.dout_uni_y_exp    (alu_y_e   ),
 	.dout_uni_y_man_dn (alu_y_m   )
 );
-*/
+
 
 // +--------------------------+
 // |     Part 4. Memories     |
@@ -454,7 +454,7 @@ sp_sram #(
  // REGFile: 29b x 59w
 sp_sram #(
 	.ADDR_WIDTH(6),
-	.DATA_WIDTH(30)
+	.DATA_WIDTH(29)
 ) u_regf (
 	.clk  (regf_clk         ),
 	.addr (regf_addr_r      ),
@@ -462,6 +462,7 @@ sp_sram #(
 	.wr   (regf_wr_r        ),
 	.qout (regf_q_fp29i     )
 );
+
 `endif /* USE_VENDOR_MEMORY */
 
 

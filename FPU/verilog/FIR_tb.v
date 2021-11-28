@@ -18,6 +18,8 @@ reg [16:0] cin;
 wire       cload;
 integer    load_cmem_cnt_r;
 
+reg [15:0] din;
+
 
 always @(posedge clk_fast or negedge rst_n) begin
    if(~rst_n) clk_div = 7'b1111111;
@@ -25,39 +27,47 @@ always @(posedge clk_fast or negedge rst_n) begin
 end
 
 initial begin
-    $dumpfile("W4823_FIR_tb.vcd");
-    $dumpvars(0,W4823_FIR_tb);
     rst_n = 1;
     clk_fast = 0;
 	first_cycle_r = 1;
 	caddr = 0;
 	load_cmem_cnt_r = 0;
+	din = 0;
 
     #1 rst_n = 0;
     #1 rst_n = 1;
     #193.3125 clk_fast = 1;
     //#100000
-	#250000
-    $finish;
+	// #10000000
+	#6420000
+    $dumpfile("W4823_FIR_tb.vcd");
+    $dumpvars(0,W4823_FIR_tb);
+	#150000
+	$finish;
 end
 
 always #195.3125 clk_fast = ~clk_fast;
 
 // CMEM Writer
-assign cload = (~clk_fast) & (load_cmem_cnt_r<64);
+assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
 always @(posedge clk_fast) begin
-	if(load_cmem_cnt_r<64) begin
+	if(load_cmem_cnt_r<65) begin
 		caddr <= caddr + 1;
 		cin <= {$random};
 		load_cmem_cnt_r = load_cmem_cnt_r + 1;
 	end
 end
 
+// Din Writer
+always @(posedge clk_slow) begin
+	din <= din + 1;
+end
+
 W4823_FIR dut (
     .rst_n(rst_n),
     .clk1(clk_slow),
     .clk2(clk_fast),
-    .din(16'b0),
+    .din(din),
     .valid_in(1'b0),
     .cin(cin),
     .caddr(caddr),
