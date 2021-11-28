@@ -29,7 +29,7 @@ always #500 tb_clk_64 = ~tb_clk_64;
 
 localparam DWIDTH = 16;
 localparam AWIDTH = 6;
-reg [DWITH-1:0] tb_din;
+	reg [DWIDTH-1:0] tb_din;
 always @(posedge tb_clk or negedge tb_rstn) begin
 	if(~tb_rstn)	tb_din <= 0;
 	else			tb_din <= tb_din + 1;

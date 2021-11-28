@@ -5,7 +5,7 @@
 module fir_circmem #(
 	parameter DWIDTH     = 16,		// FP16 Data
 	parameter AWIDTH     = 6,		// 64-Elements
-	parameter RST_USEFUL = 0,		// when =0, the reset lines are not implemented, which reduces impl. overhead
+	parameter RST_USEFUL = 0		// when =0, the reset lines are not implemented, which reduces impl. overhead
 )(
 	input					rst_n,
 	input					clk,		// 10kHz Data clock
