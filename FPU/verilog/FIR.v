@@ -31,15 +31,6 @@ wire cycle_acc_thru  = ss_r[2];
 wire cycle_acc       = ss_r[3];
 wire cycle_accnorm   = ss_r[4];
 wire cycle_sleep     = ss_r[5];
-
-reg [1:0] alu_opcode;
-always @* begin
-	alu_opcode = 2'bxx;									// Default (doing nothing, can be any value)
-	if(cycle_mul) alu_opcode = 2'b10;	                // MUL16i
-	if(cycle_acc|cycle_acc_thru) alu_opcode = 2'b11;	// ADD29i
-	if(cycle_accnorm) alu_opcode = 2'b00;				// ADD29NORM
-end
-
 always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
 		ss_r        <= 1;
@@ -115,16 +106,87 @@ always @(negedge dmem_clk or negedge rst_n) begin
 end
 
 
-// +-----------------------------------+
-// |     Part 3. REGF Data Control     |
-// +-----------------------------------+
+// +------------------------------+
+// |     Part 3. ALU Data MUX     |
+// +------------------------------+
 // 
 
+wire [17:0] cbuf_q_fp16;	// 10bit mantissa...?
+wire [16:0] dmem_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
+wire [17:0] cmem_q_fp16i;	// 11bit mantissa...?
+wire [29:0] regf_q_fp29i;
 
+// Mapping Din (FP16) to FPALU input
+wire [29:0] alumux_cbuf_fp16;
+wire [29:0] alumux_dmem_fp16;
+wire [29:0] alumux_cmem_fp16i;
+wire [29:0] alumux_self_fp29i; 
+wire [29:0] alumux_regf_fp29i;
+wire [29:0] alumux_acc_fp29i;
 
+reg [29:0]  alu_acc_29i_r;
+reg [1:0]   alu_opcode;
+reg [5:0]   cmem_addr_r;
+reg [5:0]   regf_addr_r;
 
-wire [5:0]	regf_addr;
-wire        regf_bypass;
+// ALU instance connections
+wire        alu_a_s = alu_a_29i[29];		//  1b
+wire [6:0]  alu_a_e = alu_a_29i[28:22];		//	7b
+wire [21:0] alu_a_m = alu_a_29i[21:0];		//  22b
+wire        alu_b_s = alu_b_29i[29];		//  1b
+wire [6:0]  alu_b_e = alu_b_29i[28:22];		//	7b
+wire [21:0] alu_b_m = alu_b_29i[21:0];		//  22b
+reg [29:0]  alu_a_29i;
+reg [29:0]  alu_b_29i;
+wire        alu_y_s;						//  1b
+wire [6:0]	alu_y_e;
+wire [21:0]	alu_y_m;
+wire [29:0] alu_y_29i = {alu_y_s, alu_y_e, alu_y_m};
+
+// ALL FP16 Data Connectors are RIGHT ALIGNED
+// MUX of input A
+assign alumux_cbuf_fp16  = {cbuf_q_fp16[16], 1'bx, cbuf_q_fp16[15:10], {12{1'bx}}, cbuf_q_fp16[9:0]}; 		// FP16
+assign alumux_dmem_fp16  = {dmem_q_fp16[16], 1'bx, dmem_q_fp16[15:10], {12{1'bx}}, dmem_q_fp16[9:0]}; 		// FP16
+assign alumux_acc_fp29i  = alu_acc_29i_r;	// from accumulator, FP29i
+
+// MUX of input B
+assign alumux_cmem_fp16i = {cmem_q_fp16i[17], 1'bx, cmem_q_fp16i[16:11], {11{1'bx}}, cmem_q_fp16i[10:0]};	// FP16i
+assign alumux_regf_fp29i = regf_q_fp29i;	// FP29i
+assign alumux_self_fp29i = alu_y_29i;		// from the output,  FP29i
+
+always @* begin
+	alu_opcode = 2'bxx;									// Default (doing nothing, can be any value)
+	if(cycle_load) begin					// MUL16i First Cycle
+		alu_a_29i = alumux_cbuf_fp16;
+		alu_b_29i = alumux_cmem_fp16i;
+		alu_opcode = 2'b10;
+	end
+	
+	if(cycle_mul) begin						// MUL16i Subseq. Cycles (63x)
+		alu_a_29i = alumux_dmem_fp16;
+		alu_a_29i = alumux_cmem_fp16i;
+		alu_opcode = 2'b10;
+	end         
+
+	if(cycle_acc_thru) begin				// ADD29i First 5 Cycles Feed-Thru
+		alu_a_29i = alumux_self_fp29i;
+		alu_b_29i = alumux_acc_fp29i;
+		alu_opcode = 2'b11;
+	end 
+
+	if(cycle_acc) begin						// ADD29i Subseq. Cycles
+		alu_a_29i = alumux_regf_fp29i;
+		alu_b_29i = alumux_acc_fp29i;
+		alu_opcode = 2'b11;
+	end 
+
+	if(cycle_accnorm) begin					// ADD29NORM Final Cycle
+		alu_a_29i = alumux_regf_fp29i;		// Last ACC input
+		alu_b_29i = alumux_acc_fp29i;
+		alu_opcode = 2'b00;		
+	end
+end
+
 
 `ifdef DEBUGINFO
 integer alu_clk_cnt;
