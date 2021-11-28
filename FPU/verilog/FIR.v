@@ -239,18 +239,38 @@ reg [29:0]  alu_acc_29i_r;
 reg [1:0]   alu_opcode;
 
 // ALU instance connections
-wire        alu_a_s = alu_a_29i[29];		//  1b
-wire [6:0]  alu_a_e = alu_a_29i[28:22];		//	7b
-wire [21:0] alu_a_m = alu_a_29i[21:0];		//  22b
-wire        alu_b_s = alu_b_29i[29];		//  1b
-wire [6:0]  alu_b_e = alu_b_29i[28:22];		//	7b
-wire [21:0] alu_b_m = alu_b_29i[21:0];		//  22b
+reg [29:0]  alu_a_29i_r;
+reg [29:0]  alu_b_29i_r;
 reg [29:0]  alu_a_29i;
 reg [29:0]  alu_b_29i;
+wire        alu_a_s = alu_a_29i_r[29];		//  1b
+wire [6:0]  alu_a_e = alu_a_29i_r[28:22];	//	7b
+wire [21:0] alu_a_m = alu_a_29i_r[21:0];	//  22b
+wire        alu_b_s = alu_b_29i_r[29];		//  1b
+wire [6:0]  alu_b_e = alu_b_29i_r[28:22];	//	7b
+wire [21:0] alu_b_m = alu_b_29i_r[21:0];	//  22b
 wire        alu_y_s;						//  1b
 wire [6:0]	alu_y_e;
 wire [21:0]	alu_y_m;
 wire [29:0] alu_y_29i = {alu_y_s, alu_y_e, alu_y_m};
+
+reg [29:0] alumux_regc_fp29i;
+reg [29:0] alumux_regd_fp29i;
+reg [29:0] alumux_rege_fp29i;
+
+// S1 doesn't have a latch
+always @(posedge alu_clk) begin
+	alu_a_29i_r <= alu_a_29i;
+	alu_b_29i_r <= alu_b_29i;
+end
+
+// Saving C,D,E for future cycles
+always @(posedge cycle_acc_cwr) 
+	alumux_regc_fp29i <= alumux_self_fp29i;
+always @(posedge cycle_acc_dwr) 
+	alumux_regd_fp29i <= alumux_self_fp29i;
+always @(posedge cycle_acc_ewr) 
+	alumux_rege_fp29i <= alumux_self_fp29i;
 
 // ALL FP16 Data Connectors are RIGHT ALIGNED
 // MUX of input A
@@ -269,7 +289,7 @@ always @* begin
 	alu_opcode = 2'bxx;						// Default (doing nothing, can be any value)
 	// Note: all conditions are if... if... rather than if... else if...
 	//       because these conditions are mutally exclusive
-	if(cycle_load) begin					// MUL16i First Cycle
+	if(cycle_dinlatch&cycle_load) begin					// MUL16i First Cycle
 		alu_a_29i = alumux_cbuf_fp16;
 		alu_b_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
@@ -277,8 +297,8 @@ always @* begin
 			dbg_alumux_state = 0;
 		`endif /* DEBUGINFO */
 	end
-	
-	if(cycle_mul|cycle_mul_ndav) begin						// MUL16i Subseq. Cycles (63x)
+
+	if(cycle_mul_ndav) begin
 		alu_a_29i = alumux_dmem_fp16;
 		alu_a_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
@@ -287,33 +307,79 @@ always @* begin
 		`endif /* DEBUGINFO */
 	end         
 
-	if(cycle_acc_thru) begin				// ADD29i First 5 Cycles Feed-Thru
+	if(cycle_acc_thru&~cycle_acc) begin				// ADD29i First 5 Cycles Feed-Thru
 		alu_a_29i = alumux_self_fp29i;		// the REGFile is bypassed
-		alu_b_29i = alumux_acc_fp29i;
+		alu_b_29i = 30'b0;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 2;
 		`endif /* DEBUGINFO */
 	end 
 
-	if(cycle_acc) begin						// ADD29i Subseq. Cycles (58x)
-		alu_a_29i = alumux_regf_fp29i;
-		alu_b_29i = alumux_acc_fp29i;
+	if(cycle_acc&~cycle_acc_p1) begin
+		alu_a_29i = alumux_self_fp29i;
+		alu_b_29i = alumux_regf_fp29i;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 3;
 		`endif /* DEBUGINFO */
 	end 
 
-	if(cycle_accnorm) begin					// ADD29NORM Final Cycle
-		alu_a_29i = alumux_regf_fp29i;		// Last ACC input
-		alu_b_29i = alumux_acc_fp29i;
-		alu_opcode = 2'b00;		
+	if((cycle_acc_p1|cycle_acc_cwr|cycle_acc_dwr|cycle_acc_ewr)&~cycle_acc_p21) begin
+		alu_a_29i = {30{1'bx}};
+		alu_b_29i = {30{1'bx}};
+		alu_opcode = 2'bxx;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 4;
 		`endif /* DEBUGINFO */
 	end
+
+	if(cycle_acc_p21&~cycle_acc_p22) begin
+		alu_a_29i = alumux_self_fp29i;
+		alu_b_29i = alumux_regc_fp29i;
+		alu_opcode = 2'b11;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 5;
+		`endif /* DEBUGINFO */
+	end
+
+	if(cycle_acc_p22&~cycle_acc_p31) begin
+		alu_a_29i = {30{1'bx}};
+		alu_b_29i = {30{1'bx}};
+		alu_opcode = 2'bxx;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 6;
+		`endif /* DEBUGINFO */
+	end
+	
+	if(cycle_acc_p31&~cycle_acc_p32) begin
+		alu_a_29i = alumux_self_fp29i;
+		alu_b_29i = alumux_regd_fp29i;
+		alu_opcode = 2'b11;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 7;
+		`endif /* DEBUGINFO */
+	end
+
+	if(cycle_acc_p32&~cycle_accnorm) begin
+		alu_a_29i = {30{1'bx}};
+		alu_b_29i = {30{1'bx}};
+		alu_opcode = 2'bxx;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 8;
+		`endif /* DEBUGINFO */
+	end
+
+	if(cycle_accnorm) begin					// ADD29NORM Final Cycle
+		alu_a_29i = alumux_self_fp29i;		// Last ACC input
+		alu_b_29i = alumux_rege_fp29i;
+		alu_opcode = 2'b00;		
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 9;
+		`endif /* DEBUGINFO */
+	end
 end
+
 
 // ALU instance
 /*
