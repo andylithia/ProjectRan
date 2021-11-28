@@ -20,7 +20,7 @@ module W4823_FIR(
 // +----------------------------------+
 // |     Part 1. State Controller     |
 // +----------------------------------+
-
+//
 wire clk_fast   = clk2;
 wire clk_fast_n = ~clk_fast;
 reg [15:0] ss_r;		// Control State Register
@@ -28,10 +28,10 @@ reg [6:0] cycle_cnt_r;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 wire cycle_load      = ss_r[0]; // 1
-wire cycle_mul_ndav  = ss_r[1]; // 
-wire cycle_mul       = ss_r[2];
+wire cycle_mul_ndav  = ss_r[1]; // 3
+wire cycle_mul       = ss_r[2];	// 60
 wire cycle_acc_thru  = ss_r[3];	// 5
-wire cycle_acc       = ss_r[4];	// 64
+wire cycle_acc       = ss_r[4];	// 65
 wire cycle_acc_p1    = ss_r[5]; // 2, Delay a for 1 Cycle
 wire cycle_acc_cwr   = ss_r[6]; // 1
 wire cycle_acc_dwr   = ss_r[7];	// 1
@@ -41,109 +41,103 @@ wire cycle_acc_p22   = ss_r[10]; // 4
 wire cycle_acc_p31   = ss_r[11]; // 1
 wire cycle_acc_p32   = ss_r[12]; // 4
 wire cycle_accnorm   = ss_r[13]; // 5
-wire cycle_sleep     = ss_r[14]; // 
+wire cycle_sleep     = ss_r[14]; // 100
+wire cycle_dinlatch  = ss_r[15]; // 1
+// The following coding is to ensure glitch-free clock gating
+// To get ALU input mux, xor the nearby two states
 always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
-		ss_r        <= 1;
+		ss_r        <= 16'b1000_0000_0000_0001;
 		cycle_cnt_r <= 0;
 	end else begin
 		case(ss_r)
-		16'h1: begin	// DMEM WR & MUL16i First Cycle
-			ss_r <= 16'h2;
-		end
-
-		16'h2: begin	// MUL16i First 4 Cycles
+		16'b1000_0000_0000_0001:			// DMEM WR & MUL16i First Cycle
+			ss_r <= 16'b0000_0000_0000_0011;
+		16'b0000_0000_0000_0011: begin	// MUL16i First 4 Cycles
 			if(cycle_cnt_r==8'd2) begin	
-				ss_r        <= 16'h4;
+				ss_r        <= 16'b0000_0000_0000_0110;
 				cycle_cnt_r <= 0;	
-			end else begin
+			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
-			end
 		end
-
-		16'h4: begin	// Constant MUL16i
-			if(cycle_cnt_r==8'd58) begin
-				ss_r        <= 16'h8;
+		16'b0000_0000_0000_0110: begin	// Constant MUL16i
+			if(cycle_cnt_r==8'd59) begin
+				ss_r        <= 16'b0000_0000_0000_1100;
 				cycle_cnt_r <= 0;	
-			end else begin
+			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
-			end
 		end
-		16'h8: begin	// Acc Write Thru
+		16'b0000_0000_0000_1100: begin	// Acc Write Thru
 			if(cycle_cnt_r==8'd4) begin
-				ss_r        <= 16'h10;
+				ss_r        <= 16'b0000_0000_0001_1000;
 				cycle_cnt_r <= 0;
-			end else begin
+			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
-			end
 		end
-		16'h10: begin	// Penta ACC
-			if(cycle_cnt_r==8'd57) begin
-				ss_r        <= 16'h20;
-				cycle_cnt_r <= 0;	
-			end else begin
-				cycle_cnt_r <= cycle_cnt_r + 1'b1;
-			end
-		end
-		16'h20: begin	// Acc, A+B
-			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
-				ss_r        <= 16'h40;
+		16'b0000_0000_0001_1000: begin	// Penta ACC
+			if(cycle_cnt_r==8'd64) begin
+				ss_r        <= 16'b0000_0000_0011_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		16'h40: begin	// Acc, CWR, A+B in S2
-				ss_r        <= 16'h80;
-		16'h80: begin	// Acc, DWR, A+B in S3
-				ss_r        <= 16'h100;
-		16'h100: begin	// Acc, EWR, A+B in S4
-				ss_r        <= 16'h200;
-		16'h200: begin	// Acc, P21, A+B in S5, Recall C
+		16'b0000_0000_0011_0000: begin	// Acc, A+B
 			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
-				ss_r        <= 16'h400;
+				ss_r        <= 16'b0000_0000_0110_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		16'h400: begin	// Acc, P22, Calculate A+B+C
+		16'b0000_0000_0110_0000:		// Acc, CWR, A+B in S2
+				ss_r        <= 16'b0000_0000_1100_0000;
+		16'b0000_0000_1100_0000: 	// Acc, DWR, A+B in S3
+				ss_r        <= 16'b0000_0001_1000_0000;
+		16'b0000_0001_1000_0000:	// Acc, EWR, A+B in S4
+				ss_r        <= 16'b0000_0011_0000_0000;
+		16'b0000_0011_0000_0000: begin	// Acc, P21, A+B in S5, Recall C
+			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
+				ss_r        <= 16'b0000_0110_0000_0000;
+				cycle_cnt_r <= 0;	
+			end else 
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+		end
+		16'b0000_0110_0000_0000: begin	// Acc, P22, Calculate A+B+C
 			if(cycle_cnt_r==8'd3) begin	// Accumulation ADD29i
-				ss_r        <= 16'h800;
+				ss_r        <= 16'b0000_1100_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		16'h800: begin	// Acc, P31, A+B+C Ready, Recall D
+		16'b0000_1100_0000_0000: begin	// Acc, P31, A+B+C Ready, Recall D
 			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
-				ss_r        <= 16'h1000;
+				ss_r        <= 16'b0001_1000_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		16'h1000: begin	// Acc, P32, Calculate A+B+C+D
+		16'b0001_1000_0000_0000: begin	// Acc, P32, Calculate A+B+C+D
 			if(cycle_cnt_r==8'd3) begin	// Accumulation ADD29i
-				ss_r        <= 16'h2000;
+				ss_r        <= 16'b0011_0000_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-
-		16'h2000: begin	// Acc Normalize, A+B+C+D+E, 5 Cycles
+		16'b0011_0000_0000_0000: begin	// Acc Normalize, A+B+C+D+E, 5 Cycles
 			if(cycle_cnt_r==8'd4) begin
-				ss_r        <= 16'h4000;
+				ss_r        <= 16'b0110_0000_0000_0000;
 				cycle_cnt_r <= 0;	
-			end else begin
+			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
-			end
 		end
-
-		16'h4000: begin					// Sleep
-			if(cycle_cnt_r==8'd122) begin
-				ss_r        <= 16'h1;
+		16'b0110_0000_0000_0000: begin					// Sleep
+			if(cycle_cnt_r==8'd99) begin
+				ss_r        <= 16'b1100_0000_0000_0000;
 				cycle_cnt_r <= 0;	
-			end else begin
+			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
-			end
 		end
+		16'b1100_0000_0000_0000:			// Din Latch Cycle
+			ss_r <= 16'b1000_0000_0000_0001;
 		endcase
 	end
 end
@@ -152,6 +146,8 @@ end
 // |     Part 2. Input Data Control     |
 // +------------------------------------+
 // 
+// !!! All memory addresses are synced to negedge !!!
+//
 reg cycle_load_dly_r;	
 wire dmem_wr = cycle_load_dly_r; // Enable Writing 1/2 Cycle prior
 always @(negedge clk_fast) begin
@@ -179,9 +175,9 @@ end
 
 // DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
 wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
-wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul|cycle_mul_dly_r)&clk_fast;	// DMEM Clock
+wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru & clk_fast;	// DMEM Clock
 
-wire alu_clk = (cycle_load_dly_r|cycle_mul_ndav|cycle_mul|cycle_acc_thru|cycle_acc|cycle_accnorm) & clk_fast;
+wire alu_clk = ~(cycle_sleep&cycle_dinlatch) & clk_fast;
 
 reg [5:0]	dmem_addr_r;
 reg [5:0]   cmem_addr_r;
@@ -347,11 +343,11 @@ FPALU u_fpalu(
 `ifdef DEBUGINFO
 integer dbg_alu_clk_cnt;
 reg     dbg_alu_outrdy;
-always @(posedge alu_clk or posedge cycle_load) begin
-	if(cycle_load) dbg_alu_clk_cnt <= 0;
+always @(posedge alu_clk or posedge cycle_dinlatch) begin
+	if(cycle_dinlatch) dbg_alu_clk_cnt <= 0;
 	else           dbg_alu_clk_cnt <= dbg_alu_clk_cnt + 1;
 	
-	if(cycle_load)              dbg_alu_outrdy <= 0;
+	if(cycle_dinlatch)              dbg_alu_outrdy <= 0;
 	else begin
 		if(dbg_alu_clk_cnt==3)  dbg_alu_outrdy <= 1;
 	end

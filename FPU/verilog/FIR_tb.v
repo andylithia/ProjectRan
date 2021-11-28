@@ -18,10 +18,10 @@ module W4823_FIR_tb;
 reg       rst_n;
 reg       clk_fast;
 reg [7:0] clk_div;
-wire      clk_slow = clk_div[6];    // 10kHz
+wire      clk_slow = clk_div[7];    // 10kHz
 
 always @(posedge clk_fast or negedge rst_n) begin
-   if(~rst_n) clk_div = 7'b0111111;
+   if(~rst_n) clk_div = 7'b1111111;
    else       clk_div = clk_div + 1'b1; 
 end
 
@@ -31,10 +31,10 @@ initial begin
     #1 rst_n = 0;
     #1 rst_n = 1;
     #193.3125 clk_fast = 1;
-    #100000
+    //#100000
     $dumpfile("W4823_FIR_tb.vcd");
     $dumpvars(0,W4823_FIR_tb);
-    #195312.5
+	#250000
     $finish;
 end
 
