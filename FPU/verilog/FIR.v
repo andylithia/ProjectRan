@@ -75,7 +75,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		16'b0000_0000_0001_1000: begin	// Penta ACC
-			if(cycle_cnt_r==8'd64) begin
+			if(cycle_cnt_r==8'd59) begin
 				ss_r        <= 16'b0000_0000_0011_0000;
 				cycle_cnt_r <= 0;	
 			end else 
@@ -130,7 +130,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		16'b0110_0000_0000_0000: begin					// Sleep
-			if(cycle_cnt_r==8'd99) begin
+			if(cycle_cnt_r==8'd104) begin
 				ss_r        <= 16'b1100_0000_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
@@ -158,24 +158,20 @@ end
 // To remove clock hazard in DMEM clock gating
 // Without this, the last cycle may end 1/2 clock period earlier
 reg cycle_mul_dly1_r;
-reg cycle_mul_dly2_r;
-reg cycle_mul_dly3_r;
-wire cycle_mul_dly_r = cycle_mul_dly1_r | cycle_mul_dly2_r;
 always @(posedge alu_clk) begin
-	if(cycle_mul_ndav|cycle_mul)   cycle_mul_dly1_r = 1;
+	if(cycle_mul)        cycle_mul_dly1_r = 1;
 	else                 cycle_mul_dly1_r = 0;
 end
-always @(negedge alu_clk) begin
-	if(cycle_mul_dly1_r) cycle_mul_dly2_r = 1;
-	else                 cycle_mul_dly2_r = 0;
-	if(cycle_mul_ndav|cycle_mul) cycle_mul_dly3_r = 1;
-	else                         cycle_mul_dly3_r = 0;
-end
 
+reg cycle_acc_thru_dly1_r;
+always @(negedge alu_clk) begin
+	if(cycle_acc_thru) cycle_acc_thru_dly1_r = 1;
+	else                   cycle_acc_thru_dly1_r = 0;
+end
 
 // DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
 wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
-wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru & clk_fast;	// DMEM Clock
+wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru_dly1_r & clk_fast;	// DMEM Clock
 
 wire alu_clk = ~(cycle_sleep&cycle_dinlatch) & clk_fast;
 
@@ -197,18 +193,19 @@ end
 // |     Part 3. REGFile Data Control     |
 // +--------------------------------------+
 // 
-wire         regf_wr = (cycle_mul|cycle_mul_dly3_r)&~cycle_mul_ndav;
-wire         regf_clk = (regf_wr|cycle_acc_thru|cycle_acc|cycle_accnorm)&& alu_clk;
+// wire         regf_wr = (cycle_mul|cycle_mul_dly3_r)&~cycle_mul_ndav;
+reg regf_wr;
+wire regf_clken = (regf_wr|cycle_acc_thru|cycle_acc);
+wire regf_clk   = regf_clken & alu_clk;
 //reg          regf_wr_dly_r;
 reg [5:0]    regf_addr_r;
-
+/*
 always @(negedge regf_clk or posedge cycle_load) begin
 	if(cycle_load) 
 		regf_addr_r <= 6'd63;
 	else                
 		regf_addr_r <= regf_addr_r + 1;
 end
-/*
 always @(negedge regf_clk or negedge regf_wr) begin
 	if(regf_wr) 
 		regf_wr_dly_r <= 1;
@@ -216,7 +213,21 @@ always @(negedge regf_clk or negedge regf_wr) begin
 		regf_wr_dly_r <= 0;
 end
 */
+reg cycle_acc_thru_dly_r;
+always @(posedge alu_clk) begin
+	if(cycle_acc_thru) cycle_acc_thru_dly_r <= 1;
+	else               cycle_acc_thru_dly_r <= 0;
+end
 
+always @(negedge alu_clk) begin
+	if(cycle_mul_dly1_r&~cycle_acc_thru_dly_r) regf_wr = 1;
+	else          regf_wr = 0;
+end
+
+always @(negedge alu_clk) begin
+	if(~regf_clken) regf_addr_r <= 0;
+	else            regf_addr_r <= regf_addr_r + 1;
+end
 
 // +------------------------------+
 // |     Part 3. ALU Data MUX     |
@@ -254,6 +265,7 @@ wire [6:0]	alu_y_e;
 wire [21:0]	alu_y_m;
 wire [29:0] alu_y_29i = {alu_y_s, alu_y_e, alu_y_m};
 
+reg [29:0] alumux_rega_fp29i;
 reg [29:0] alumux_regc_fp29i;
 reg [29:0] alumux_regd_fp29i;
 reg [29:0] alumux_rege_fp29i;
@@ -265,11 +277,13 @@ always @(posedge alu_clk) begin
 end
 
 // Saving C,D,E for future cycles
-always @(posedge cycle_acc_cwr) 
-	alumux_regc_fp29i <= alumux_self_fp29i;
+always @(posedge (cycle_acc_p1&alu_clk)) 
+	alumux_rega_fp29i <= alumux_self_fp29i;
 always @(posedge cycle_acc_dwr) 
-	alumux_regd_fp29i <= alumux_self_fp29i;
+	alumux_regc_fp29i <= alumux_self_fp29i;
 always @(posedge cycle_acc_ewr) 
+	alumux_regd_fp29i <= alumux_self_fp29i;
+always @(posedge cycle_acc_p21) 
 	alumux_rege_fp29i <= alumux_self_fp29i;
 
 // ALL FP16 Data Connectors are RIGHT ALIGNED
@@ -306,9 +320,10 @@ always @* begin
 			dbg_alumux_state = 1;
 		`endif /* DEBUGINFO */
 	end         
-
-	if(cycle_acc_thru&~cycle_acc) begin				// ADD29i First 5 Cycles Feed-Thru
-		alu_a_29i = alumux_self_fp29i;		// the REGFile is bypassed
+	
+	// ADD29i First 5 Cycles Feed-Thru
+	if(cycle_acc_thru&~cycle_acc) begin		
+		alu_a_29i = alumux_self_fp29i;	
 		alu_b_29i = 30'b0;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
@@ -316,6 +331,7 @@ always @* begin
 		`endif /* DEBUGINFO */
 	end 
 
+	// Penta Summation
 	if(cycle_acc&~cycle_acc_p1) begin
 		alu_a_29i = alumux_self_fp29i;
 		alu_b_29i = alumux_regf_fp29i;
@@ -325,59 +341,77 @@ always @* begin
 		`endif /* DEBUGINFO */
 	end 
 
-	if((cycle_acc_p1|cycle_acc_cwr|cycle_acc_dwr|cycle_acc_ewr)&~cycle_acc_p21) begin
-		alu_a_29i = {30{1'bx}};
-		alu_b_29i = {30{1'bx}};
-		alu_opcode = 2'bxx;
+	// A+B, the first cycle is discarded
+	if(cycle_acc_p1 & ~cycle_acc_cwr) begin
+		alu_a_29i = alumux_self_fp29i;
+		alu_b_29i = alumux_rega_fp29i;
+		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 4;
 		`endif /* DEBUGINFO */
 	end
 
-	if(cycle_acc_p21&~cycle_acc_p22) begin
-		alu_a_29i = alumux_self_fp29i;
-		alu_b_29i = alumux_regc_fp29i;
-		alu_opcode = 2'b11;
+	// Wait for A+B
+	if((cycle_acc_cwr|cycle_acc_dwr|cycle_acc_ewr)&~cycle_acc_p21) begin
+		alu_a_29i = {30{1'bx}};
+		alu_b_29i = {30{1'bx}};
+		alu_opcode = 2'bxx;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 5;
 		`endif /* DEBUGINFO */
 	end
 
+	// Start A+B+C
+	if(cycle_acc_p21&~cycle_acc_p22) begin
+		alu_a_29i = alumux_self_fp29i;
+		alu_b_29i = alumux_regc_fp29i;
+		alu_opcode = 2'b11;
+		`ifdef DEBUGINFO
+			dbg_alumux_state = 6;
+		`endif /* DEBUGINFO */
+	end
+
+	// Wait for A+B+C
 	if(cycle_acc_p22&~cycle_acc_p31) begin
 		alu_a_29i = {30{1'bx}};
 		alu_b_29i = {30{1'bx}};
 		alu_opcode = 2'bxx;
 		`ifdef DEBUGINFO
-			dbg_alumux_state = 6;
+			dbg_alumux_state = 7;
 		`endif /* DEBUGINFO */
 	end
 	
+	// Start A+B+C+D
 	if(cycle_acc_p31&~cycle_acc_p32) begin
 		alu_a_29i = alumux_self_fp29i;
 		alu_b_29i = alumux_regd_fp29i;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
-			dbg_alumux_state = 7;
+			dbg_alumux_state = 8;
 		`endif /* DEBUGINFO */
 	end
 
+	// Wait for A+B+C+D
 	if(cycle_acc_p32&~cycle_accnorm) begin
 		alu_a_29i = {30{1'bx}};
 		alu_b_29i = {30{1'bx}};
 		alu_opcode = 2'bxx;
 		`ifdef DEBUGINFO
-			dbg_alumux_state = 8;
+			dbg_alumux_state = 9;
 		`endif /* DEBUGINFO */
 	end
 
-	if(cycle_accnorm) begin					// ADD29NORM Final Cycle
+	// Start A+B+C+D+E
+	if(cycle_accnorm&~cycle_sleep) begin					// ADD29NORM Final Cycle
 		alu_a_29i = alumux_self_fp29i;		// Last ACC input
 		alu_b_29i = alumux_rege_fp29i;
 		alu_opcode = 2'b00;		
 		`ifdef DEBUGINFO
-			dbg_alumux_state = 9;
+			dbg_alumux_state = 10;
 		`endif /* DEBUGINFO */
 	end
+
+
 end
 
 
