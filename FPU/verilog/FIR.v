@@ -23,71 +23,122 @@ module W4823_FIR(
 
 wire clk_fast   = clk2;
 wire clk_fast_n = ~clk_fast;
-reg [6:0] ss_r;		// Control State Register
+reg [15:0] ss_r;		// Control State Register
 reg [6:0] cycle_cnt_r;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
-wire cycle_load      = ss_r[0];
-wire cycle_mul_ndav  = ss_r[1];
+wire cycle_load      = ss_r[0]; // 1
+wire cycle_mul_ndav  = ss_r[1]; // 
 wire cycle_mul       = ss_r[2];
-wire cycle_acc_thru  = ss_r[3];
-wire cycle_acc       = ss_r[4];
-wire cycle_accnorm   = ss_r[5];
-wire cycle_sleep     = ss_r[6];
+wire cycle_acc_thru  = ss_r[3];	// 5
+wire cycle_acc       = ss_r[4];	// 64
+wire cycle_acc_p1    = ss_r[5]; // 2, Delay a for 1 Cycle
+wire cycle_acc_cwr   = ss_r[6]; // 1
+wire cycle_acc_dwr   = ss_r[7];	// 1
+wire cycle_acc_ewr	 = ss_r[8];	// 1
+wire cycle_acc_p21   = ss_r[9]; // 2, 
+wire cycle_acc_p22   = ss_r[10]; // 4
+wire cycle_acc_p31   = ss_r[11]; // 1
+wire cycle_acc_p32   = ss_r[12]; // 4
+wire cycle_accnorm   = ss_r[13]; // 5
+wire cycle_sleep     = ss_r[14]; // 
 always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
 		ss_r        <= 1;
 		cycle_cnt_r <= 0;
 	end else begin
 		case(ss_r)
-		7'b0000001: begin					// DMEM WR & MUL16i First Cycle
-			ss_r <= 7'b0000010;
+		16'h1: begin	// DMEM WR & MUL16i First Cycle
+			ss_r <= 16'h2;
 		end
 
-		7'b0000010: begin					// MUL16i First 4 Cycles
+		16'h2: begin	// MUL16i First 4 Cycles
 			if(cycle_cnt_r==8'd2) begin	
-				ss_r        <= 7'b0000100;
+				ss_r        <= 16'h4;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
 
-		7'b0000100: begin
-			if(cycle_cnt_r==8'd58) begin	// Constant MUL16i
-				ss_r        <= 7'b0001000;
+		16'h4: begin	// Constant MUL16i
+			if(cycle_cnt_r==8'd58) begin
+				ss_r        <= 16'h8;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
-		7'b0001000: begin
-			if(cycle_cnt_r==8'd4) begin		// Accumulation ADD29i Thru
-				ss_r        <= 7'b0010000;
+		16'h8: begin	// Acc Write Thru
+			if(cycle_cnt_r==8'd4) begin
+				ss_r        <= 16'h10;
 				cycle_cnt_r <= 0;
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
-		7'b0010000: begin
-			if(cycle_cnt_r==8'd57) begin	// Accumulation ADD29i
-				ss_r        <= 7'b0100000;
+		16'h10: begin	// Penta ACC
+			if(cycle_cnt_r==8'd57) begin
+				ss_r        <= 16'h20;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
-		7'b0100000: begin					// Accumulation Normalize
+		16'h20: begin	// Acc, A+B
+			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
+				ss_r        <= 16'h40;
+				cycle_cnt_r <= 0;	
+			end else 
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+		end
+		16'h40: begin	// Acc, CWR, A+B in S2
+				ss_r        <= 16'h80;
+		16'h80: begin	// Acc, DWR, A+B in S3
+				ss_r        <= 16'h100;
+		16'h100: begin	// Acc, EWR, A+B in S4
+				ss_r        <= 16'h200;
+		16'h200: begin	// Acc, P21, A+B in S5, Recall C
+			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
+				ss_r        <= 16'h400;
+				cycle_cnt_r <= 0;	
+			end else 
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+		end
+		16'h400: begin	// Acc, P22, Calculate A+B+C
+			if(cycle_cnt_r==8'd3) begin	// Accumulation ADD29i
+				ss_r        <= 16'h800;
+				cycle_cnt_r <= 0;	
+			end else 
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+		end
+		16'h800: begin	// Acc, P31, A+B+C Ready, Recall D
+			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
+				ss_r        <= 16'h1000;
+				cycle_cnt_r <= 0;	
+			end else 
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+		end
+		16'h1000: begin	// Acc, P32, Calculate A+B+C+D
+			if(cycle_cnt_r==8'd3) begin	// Accumulation ADD29i
+				ss_r        <= 16'h2000;
+				cycle_cnt_r <= 0;	
+			end else 
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+		end
+
+		16'h2000: begin	// Acc Normalize, A+B+C+D+E, 5 Cycles
 			if(cycle_cnt_r==8'd4) begin
-				ss_r        <= 7'b1000000;
+				ss_r        <= 16'h4000;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 			end
 		end
-		7'b1000000: begin					// Sleep
+
+		16'h4000: begin					// Sleep
 			if(cycle_cnt_r==8'd122) begin
-				ss_r        <= 7'b0000001;
+				ss_r        <= 16'h1;
 				cycle_cnt_r <= 0;	
 			end else begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
