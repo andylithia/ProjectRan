@@ -16,6 +16,17 @@ reg       tb_rstn;
 assign tb_clk     = tb_clkdiv_64[6];
 assign tb_clk_neg = ~tb_clk;
 
+initial
+begin
+	tb_rstn <= 1;
+	tb_clkdiv_64 <= 6'b0;
+	tb_clk_64 <= 0;
+	#1000
+	tb_rstn <= 0;
+	#1000
+	tb_rstn <= 1;
+end
+		
 always @(posedge tb_clk_64 or negedge tb_rstn) begin
 	if(~tb_rstn) 
 		tb_clkdiv_64 <= 6'b0;
