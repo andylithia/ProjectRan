@@ -161,7 +161,7 @@ end
 // CMEM can be written-to in the first 256-clk cycle
 // from the outside
 wire        cmem_wr = first_cycle_r;	// Internal
-wire        cmem_clk = cload;			// External
+wire        cmem_clk;					// Muxed
 wire [5:0]  cmem_addr;					// Muxed
 reg  [5:0]  cmem_addr_r;				// Internal
 wire [16:0] cmem_din_FP16i = cin;		// External 
@@ -169,6 +169,7 @@ wire [16:0] cmem_din_FP16i = cin;		// External
 reg         dmem_wr_r;
 reg [5:0]	dmem_addr_r;
 assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
+assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
 always @(posedge cycle_dinlatch or negedge dmem_clk) begin
 	if(cycle_dinlatch&~cycle_load) begin
 		dmem_wr_r   <= 1;
@@ -227,7 +228,7 @@ end
 // 
 wire [17:0] cbuf_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
 wire [16:0] dmem_q_fp16;	// 10bit mantissa, ALU internally prefixed by 1'b1
-wire [17:0] cmem_q_fp16i;	// 11bit mantissa, raw, denormalized data
+wire [16:0] cmem_q_fp16i;	// 11bit mantissa, raw, denormalized data
 wire [29:0] regf_q_fp29i;	// 
 
 // Mapping Din (FP16) to FPALU input
@@ -282,7 +283,7 @@ assign alumux_cbuf_fp16  = {cbuf_q_fp16[16], 1'bx, cbuf_q_fp16[15:10], {12{1'bx}
 assign alumux_dmem_fp16  = {dmem_q_fp16[16], 1'bx, dmem_q_fp16[15:10], {12{1'bx}}, dmem_q_fp16[9:0]}; 		// FP16
 
 // MUX of input B
-assign alumux_cmem_fp16i = {cmem_q_fp16i[17], 1'bx, cmem_q_fp16i[16:11], {11{1'bx}}, cmem_q_fp16i[10:0]};	// FP16i
+assign alumux_cmem_fp16i = {cmem_q_fp16i[16], 1'bx, cmem_q_fp16i[15:11], {11{1'bx}}, cmem_q_fp16i[10:0]};	// FP16i
 assign alumux_regf_fp29i = regf_q_fp29i;	// FP29i
 assign alumux_self_fp29i = alu_y_29i;		// from the output,  FP29i
 `ifdef DEBUGINFO
@@ -422,7 +423,24 @@ FPALU u_fpalu(
 // |     Part 4. Memories     |
 // +--------------------------+
 // 
+`ifdef USE_VENDOR_MEMORY
 
+`else
+
+// CMEM: 17b x 64w
+sp_sram #(
+	.ADDR_WIDTH(6),
+	.DATA_WIDTH(17)
+) u_cmem (
+	.clk  (cmem_clk      ),
+	.addr (cmem_addr     ),
+	.din  (cmem_din_FP16i),
+	.wr   (cmem_wr       ),
+	.qout (cmem_q_fp16i  )
+);
+
+
+`endif /* USE_VENDOR_MEMORY */
 
 
 
