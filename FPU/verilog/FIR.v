@@ -30,7 +30,7 @@ reg        first_cycle_r;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 wire cycle_load      = ss_r[0]; // 1
-wire cycle_mul_ndav  = ss_r[1]; // 3
+wire cycle_mul_ndav  = ss_r[1]; // 4
 wire cycle_mul       = ss_r[2];	// 60
 wire cycle_acc_thru  = ss_r[3];	// 5
 wire cycle_acc       = ss_r[4];	// 65
@@ -58,14 +58,14 @@ always @(posedge clk_fast or negedge rst_n) begin
 		16'b1000_0000_0000_0001:			// DMEM WR & MUL16i First Cycle
 			ss_r <= 16'b0000_0000_0000_0011;
 		16'b0000_0000_0000_0011: begin	// MUL16i First 4 Cycles
-			if(cycle_cnt_r==8'd2) begin	
+			if(cycle_cnt_r==8'd3) begin	
 				ss_r        <= 16'b0000_0000_0000_0110;
 				cycle_cnt_r <= 0;	
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		16'b0000_0000_0000_0110: begin	// Constant MUL16i
-			if(cycle_cnt_r==8'd59) begin
+			if(cycle_cnt_r==8'd58) begin
 				ss_r        <= 16'b0000_0000_0000_1100;
 				cycle_cnt_r <= 0;	
 			end else 
@@ -171,8 +171,15 @@ reg         dmem_wr_r;
 reg [5:0]	dmem_addr_r;
 assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
 assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
-always @(posedge cycle_dinlatch or negedge dmem_clk) begin
-	if(cycle_dinlatch&~cycle_load) begin
+wire dmem_cmem_rst = dmem_wr_r&~dmem_clk;
+reg cycle_dinlatch_pulse_r;
+always @(posedge cycle_dinlatch or negedge clk_fast) begin
+	if(clk_fast) cycle_dinlatch_pulse_r <= 1;
+	else         cycle_dinlatch_pulse_r <= 0;
+end
+
+always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
+	if(cycle_dinlatch_pulse_r) begin
 		dmem_wr_r   <= 1;
 		cmem_addr_r <= 0;
 	end else begin
@@ -197,7 +204,8 @@ always @(negedge alu_clk) begin
 end
 
 // DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
-wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
+// wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
+wire din_latch = cycle_dinlatch_pulse_r;
 wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru_dly1_r & clk_fast;	// DMEM Clock
 
 // Truncated, loops back automatically when dmem_addr_r >= 64;
@@ -293,7 +301,7 @@ always @* begin
 	alu_opcode = 2'bxx;		// Default (doing nothing, can be any value)
 	// Note: all conditions are if... if... rather than if... else if...
 	//       because these conditions are mutally exclusive
-	if(cycle_dinlatch&cycle_load) begin					// MUL16i First Cycle
+	if(cycle_dinlatch) begin					// MUL16i First Cycle
 		alu_a_29i = alumux_din_fp16;
 		alu_b_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
