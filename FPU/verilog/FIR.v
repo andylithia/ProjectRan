@@ -170,6 +170,10 @@ wire [16:0] cmem_din_FP16i = cin;		// External
 
 reg         dmem_wr_r;
 reg [5:0]	dmem_addr_r;
+// DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
+// wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
+wire din_latch;
+wire dmem_clk; 
 assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
 assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
 wire dmem_cmem_rst = dmem_wr_r&~dmem_clk;
@@ -211,10 +215,8 @@ always @(posedge alu_clk) begin
 
 end
 
-// DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
-// wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
-wire din_latch = cycle_dinlatch_pulse_r;
-wire dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru_dly1_r & clk_fast;	// DMEM Clock
+assign din_latch = cycle_dinlatch_pulse_r;
+assign dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru_dly1_r & clk_fast;	// DMEM Clock
 
 // Truncated, loops back automatically when dmem_addr_r >= 64;
 always @(negedge dmem_clk or negedge rst_n) begin
