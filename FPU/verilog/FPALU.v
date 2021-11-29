@@ -28,7 +28,7 @@ module FPALU (
 );
 
 // This option adds extra real number registers to assist debugging
-`define DEBUGINFO
+// `define DEBUGINFO
 
 // ----- CONSTANTS -----
 localparam ML_MANSIZE = 11;

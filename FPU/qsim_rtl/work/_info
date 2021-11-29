@@ -1,0 +1,262 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/qsim_rtl
+T_opt
+!s110 1638165199
+VG;^U4z1f^UVS8FYYhoLPO2
+04 12 4 work W4823_FIR_tb fast 0
+=1-989096bfd3fa-61a46acd-c30bd-72e9
+o-quiet -auto_acc_if_foreign -work work
+Z1 tCvgOpt 0
+n@_opt
+OE;O;10.7b_1;67
+vbooth_enc_r4
+Z2 !s10a 1638158998
+Z3 !s110 1638164521
+!i10b 1
+!s100 ZgcGiE8g=`4bB^4b=eFf81
+I6ml_<m;Z^Y_l^6kz@9fWj0
+Z4 VDg1SIo80bB@j0V0VzS_@n1
+R0
+Z5 w1638158998
+Z6 8../verilog/misc.v
+Z7 F../verilog/misc.v
+L0 122
+Z8 OE;L;10.7b_1;67
+r1
+!s85 0
+31
+Z9 !s108 1638164520.000000
+Z10 !s107 ../verilog/misc.v|
+Z11 !s90 -reportprogress|300|+acc|-incr|../verilog/misc.v|
+!i113 0
+Z12 o+acc -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R1
+vbooth_ppgen_r4
+R2
+R3
+!i10b 1
+!s100 B>0iDSge:4om?ZldQRQ693
+IBJfjL1Ta<5LS4khgcPD<e0
+R4
+R0
+R5
+R6
+R7
+L0 185
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 0
+R12
+R1
+vbsl
+R2
+R3
+!i10b 1
+!s100 A0=7:;f9Z<i7[7]QV>@V63
+I3M2ZgWARFD2m1U70hPJF20
+R4
+R0
+R5
+R6
+R7
+L0 48
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 0
+R12
+R1
+vbsr
+R2
+R3
+!i10b 1
+!s100 PC?bU3iHdFCVVG=3@J0Pl2
+IVk6<;OmjD>LWnUV0KUAVD3
+R4
+R0
+R5
+R6
+R7
+L0 23
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 0
+R12
+R1
+vcla_adder
+R2
+R3
+!i10b 1
+!s100 8PEKnT]lNGbD=Hh>Z8YcO1
+IiPM@>]^Z:1U?;@>CGB:=A2
+R4
+R0
+R5
+R6
+R7
+L0 151
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 0
+R12
+R1
+vcount_lead_zero
+R2
+R3
+!i10b 1
+!s100 fXKVhkA<=gNzlKV9:?H<10
+ICUgUn]fWI@Q7^j4SVMa_13
+R4
+R0
+R5
+R6
+R7
+L0 93
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 0
+R12
+R1
+vFPALU_dummy
+R2
+!s110 1638164522
+!i10b 1
+!s100 9SD>AXXZP:JeNU7I;jCN[1
+I?5SF`K5>0JW]g?jd0oX1G3
+R4
+R0
+R5
+8../verilog/FPALU_dummy.v
+F../verilog/FPALU_dummy.v
+L0 2
+R8
+r1
+!s85 0
+31
+!s108 1638164521.000000
+!s107 ../verilog/FPALU_dummy.v|
+!s90 -reportprogress|300|+acc|-incr|../verilog/FPALU_dummy.v|
+!i113 0
+R12
+R1
+n@f@p@a@l@u_dummy
+vsp_sram
+!s10a 1638164631
+!s110 1638164933
+!i10b 1
+!s100 <`RXd]CMA=XYW[dG_4>3g0
+IDMkn=nHJW78h2j]aR?Uma1
+R4
+R0
+w1638164631
+8../verilog/sp_sram.v
+F../verilog/sp_sram.v
+L0 6
+R8
+r1
+!s85 0
+31
+!s108 1638164932.000000
+!s107 ../verilog/sp_sram.v|
+!s90 -reportprogress|300|+acc|-incr|../verilog/sp_sram.v|
+!i113 0
+R12
+R1
+vW4823_FIR
+!s110 1638165192
+!i10b 1
+!s100 8ge@2>zBOI91=0hWf<n_;0
+ImY98K^g?D:XJFYXIY]7R;2
+R4
+R0
+w1638165139
+8../verilog/FIR.v
+F../verilog/FIR.v
+L0 6
+R8
+r1
+!s85 0
+31
+!s108 1638165191.000000
+!s107 ../verilog/FIR.v|
+!s90 -reportprogress|300|+acc|-incr|../verilog/FIR.v|
+!i113 0
+R12
+R1
+n@w4823_@f@i@r
+vW4823_FIR_tb
+!s110 1638165193
+!i10b 1
+!s100 ]k2BHKaJCYYUVMIcE:mRH0
+ImWff[ZUeeG58D@e[Gn14X2
+R4
+R0
+w1638158997
+8../verilog/FIR_tb.v
+F../verilog/FIR_tb.v
+L0 8
+R8
+r1
+!s85 0
+31
+!s108 1638165192.000000
+!s107 ../verilog/FIR_tb.v|
+!s90 -reportprogress|300|+acc|-incr|../verilog/FIR_tb.v|
+!i113 0
+R12
+R1
+n@w4823_@f@i@r_tb
+vxchg
+R2
+R3
+!i10b 1
+!s100 GZMo@5BF=G8g<2YFmjN=91
+IP5CzkXTM;RMkUDT9`gAZI2
+R4
+R0
+R5
+R6
+R7
+L0 7
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 0
+R12
+R1

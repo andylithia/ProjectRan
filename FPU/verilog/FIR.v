@@ -5,15 +5,16 @@
 `timescale 1ns/1fs
 module W4823_FIR(
 	input           rst_n,		//
-	input           clk1,		// Slow Clock 
-	input           clk2,		// Fast Clock
+	input           clk_slow,		// Slow Clock 
+	input           clk,		// Fast Clock
 	input [15:0]    din,		// FP16 Input Data
 	input           valid_in,	// Input Ready
 	input [16:0]    cin,		// Coefficient Input
 	input [5:0]     caddr,		// Coefficient Address (64)
 	input           cload,
 	output [15:0]   dout,		// FP16 Output Data
-	output          valid		// Output Ready
+	output          valid,		// Output Ready
+	output [28:0]   dout_29i	// Raw Output from the ALU
 );
 
 `define DEBUGINFO
@@ -22,7 +23,7 @@ module W4823_FIR(
 // |     Part 1. State Controller     |
 // +----------------------------------+
 //
-wire       clk_fast   = clk2;
+wire       clk_fast   = clk;
 wire       clk_fast_n = ~clk_fast;
 reg [15:0] ss_r;		// Control State Register
 reg [7:0]  cycle_cnt_r;
@@ -178,9 +179,10 @@ assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
 assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
 wire dmem_cmem_rst = dmem_wr_r&~dmem_clk;
 reg cycle_dinlatch_pulse_r;
+// Modded because DC complains about polarity
 always @(posedge cycle_dinlatch or negedge clk_fast) begin
-	if(clk_fast) cycle_dinlatch_pulse_r <= 1;
-	else         cycle_dinlatch_pulse_r <= 0;
+	if(~clk_fast) cycle_dinlatch_pulse_r <= 0;
+	else          cycle_dinlatch_pulse_r <= 1;
 end
 
 always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
@@ -426,7 +428,7 @@ end
 
 // ALU instance
 
-FPALU_dummy u_fpalu(
+FPALU u_fpalu(
 	.clk               (alu_clk   ),
 	.opcode            (alu_opcode),
 	.din_uni_a_sgn     (alu_a_s   ),
@@ -440,6 +442,8 @@ FPALU_dummy u_fpalu(
 	.dout_uni_y_man_dn (alu_y_m   )
 );
 
+assign dout     = alu_y_29i;
+assign dout_29i = alu_y_29i;
 
 // +--------------------------+
 // |     Part 4. Memories     |
@@ -493,12 +497,13 @@ sp_sram #(
 integer dbg_alu_clk_cnt;
 reg     dbg_alu_outrdy;
 always @(posedge alu_clk or posedge cycle_dinlatch) begin
-	if(cycle_dinlatch) dbg_alu_clk_cnt <= 0;
-	else           dbg_alu_clk_cnt <= dbg_alu_clk_cnt + 1;
-	
-	if(cycle_dinlatch)              dbg_alu_outrdy <= 0;
-	else begin
-		if(dbg_alu_clk_cnt==3)  dbg_alu_outrdy <= 1;
+	if(cycle_dinlatch) begin
+		dbg_alu_clk_cnt <= 0;
+		dbg_alu_outrdy <= 0;
+	end else begin          
+		dbg_alu_clk_cnt <= dbg_alu_clk_cnt + 1;
+		if(dbg_alu_clk_cnt==3)  
+			dbg_alu_outrdy <= 1;
 	end
 end 
 

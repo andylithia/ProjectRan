@@ -1,0 +1,225 @@
+# //  Questa Sim
+# //  Version 10.7b_1 linux Jul 26 2018
+# //
+# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# do runsim.do
+# ** Warning: (vlib-34) Library already exists at "work".
+# QuestaSim vmap 10.7b_1 Lib Mapping Utility 2018.07 Jul 26 2018
+# vmap work work 
+# Modifying modelsim.ini
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 00:53:05 on Nov 29,2021
+# vlog -reportprogress 300 "+acc" -incr ../verilog/misc.v 
+# -- Skipping module xchg
+# -- Skipping module bsr
+# -- Skipping module bsl
+# -- Skipping module count_lead_zero
+# -- Skipping module booth_enc_r4
+# -- Skipping module cla_adder
+# -- Skipping module booth_ppgen_r4
+# 
+# Top level modules:
+# 	xchg
+# 	bsr
+# 	bsl
+# 	booth_enc_r4
+# 	cla_adder
+# 	booth_ppgen_r4
+# End time: 00:53:07 on Nov 29,2021, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 00:53:08 on Nov 29,2021
+# vlog -reportprogress 300 "+acc" -incr ../verilog/FPALU_dummy.v 
+# -- Skipping module FPALU_dummy
+# 
+# Top level modules:
+# 	FPALU_dummy
+# End time: 00:53:09 on Nov 29,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 00:53:09 on Nov 29,2021
+# vlog -reportprogress 300 "+acc" -incr ../verilog/sp_sram.v 
+# -- Skipping module sp_sram
+# 
+# Top level modules:
+# 	sp_sram
+# End time: 00:53:10 on Nov 29,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 00:53:11 on Nov 29,2021
+# vlog -reportprogress 300 "+acc" -incr ../verilog/FIR.v 
+# -- Compiling module W4823_FIR
+# 
+# Top level modules:
+# 	W4823_FIR
+# End time: 00:53:12 on Nov 29,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 00:53:12 on Nov 29,2021
+# vlog -reportprogress 300 "+acc" -incr ../verilog/FIR_tb.v 
+# -- Compiling module W4823_FIR_tb
+# 
+# Top level modules:
+# 	W4823_FIR_tb
+# End time: 00:53:13 on Nov 29,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# ** Warning: (vsim-8689) Ignoring plusarg '+acc'.  Did you mean '-voptargs=+acc'?
+# vsim "+acc" -t ns -lib work W4823_FIR_tb 
+# Start time: 00:53:14 on Nov 29,2021
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 1 FSM in module "W4823_FIR(fast)".
+# Loading work.W4823_FIR_tb(fast)
+# Loading work.W4823_FIR(fast)
+# Loading work.FPALU_dummy(fast)
+# Loading work.sp_sram(fast)
+# Loading work.sp_sram(fast__1)
+# Loading work.sp_sram(fast__2)
+# ** Error: Cannot open macro file: waveformat.do
+# Error in macro ./runsim.do line 19
+# Cannot open macro file: waveformat.do
+#     while executing
+# "do waveformat.do   "
+add wave -position insertpoint  \
+sim:/W4823_FIR_tb/dut/cycle_load \
+sim:/W4823_FIR_tb/dut/cycle_mul_ndav \
+sim:/W4823_FIR_tb/dut/cycle_mul \
+sim:/W4823_FIR_tb/dut/cycle_acc_thru \
+sim:/W4823_FIR_tb/dut/cycle_acc \
+sim:/W4823_FIR_tb/dut/cycle_acc_p1 \
+sim:/W4823_FIR_tb/dut/cycle_acc_cwr \
+sim:/W4823_FIR_tb/dut/cycle_acc_dwr \
+sim:/W4823_FIR_tb/dut/cycle_acc_ewr \
+sim:/W4823_FIR_tb/dut/cycle_acc_p21 \
+sim:/W4823_FIR_tb/dut/cycle_acc_p22 \
+sim:/W4823_FIR_tb/dut/cycle_acc_p31 \
+sim:/W4823_FIR_tb/dut/cycle_acc_p32 \
+sim:/W4823_FIR_tb/dut/cycle_accnorm \
+sim:/W4823_FIR_tb/dut/cycle_sleep \
+sim:/W4823_FIR_tb/dut/cycle_dinlatch \
+sim:/W4823_FIR_tb/dut/cycle_load_dly_r
+restart
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# Loading work.W4823_FIR_tb(fast)
+# Loading work.W4823_FIR(fast)
+# Loading work.FPALU_dummy(fast)
+# Loading work.sp_sram(fast)
+# Loading work.sp_sram(fast__1)
+# Loading work.sp_sram(fast__2)
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+# Causality operation skipped due to absence of debug database file
+restart
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# Loading work.W4823_FIR_tb(fast)
+# Loading work.W4823_FIR(fast)
+# Loading work.FPALU_dummy(fast)
+# Loading work.sp_sram(fast)
+# Loading work.sp_sram(fast__1)
+# Loading work.sp_sram(fast__2)
+run
+add wave -position insertpoint  \
+sim:/W4823_FIR_tb/rst_n \
+sim:/W4823_FIR_tb/clk_fast \
+sim:/W4823_FIR_tb/clk_div \
+sim:/W4823_FIR_tb/clk_slow \
+sim:/W4823_FIR_tb/first_cycle_r \
+sim:/W4823_FIR_tb/caddr \
+sim:/W4823_FIR_tb/cin \
+sim:/W4823_FIR_tb/cload \
+sim:/W4823_FIR_tb/load_cmem_cnt_r \
+sim:/W4823_FIR_tb/din
+restart
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# Loading work.W4823_FIR_tb(fast)
+# Loading work.W4823_FIR(fast)
+# Loading work.FPALU_dummy(fast)
+# Loading work.sp_sram(fast)
+# Loading work.sp_sram(fast__1)
+# Loading work.sp_sram(fast__2)
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+# End time: 00:57:20 on Nov 29,2021, Elapsed time: 0:04:06
+# Errors: 3, Warnings: 1
