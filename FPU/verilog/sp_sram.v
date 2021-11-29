@@ -15,7 +15,7 @@ module sp_sram #(
 	output reg [DATA_WIDTH-1:0] qout
 );
 
-reg [DATA_WIDTH-1:0] mem [DEPTH];
+reg [DATA_WIDTH-1:0] mem [DEPTH-1:0];
 always @(posedge clk) begin
 	if(wr) begin
 		mem[addr] <= din;
