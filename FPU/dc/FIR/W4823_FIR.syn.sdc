@@ -1,11 +1,12 @@
 ###################################################################
 
-# Created by write_sdc on Mon Nov 29 02:26:22 2021
+# Created by write_sdc on Mon Nov 29 12:23:29 2021
 
 ###################################################################
 set sdc_version 1.7
 
-set_units -time ns -resistance kOhm -capacitance pF -voltage V -current mA
+set_units -time ns -resistance kOhm -capacitance pF -power mW -voltage V       \
+-current mA
 set_max_fanout 4 [current_design]
 set_max_area 0
 set_driving_cell -lib_cell INVX1TS [get_ports rst_n]

@@ -1,9 +1,31 @@
 set top_level W4823_FIR
 source -verbose "../common_script/common.tcl"
-#analyze -format verilog -library work ../../verilog/misc.v
+# analyze -format verilog -library work ../../verilog/misc.v
 #analyze -format verilog -library work ../../verilog/sp_sram.v
-#read_verilog {../../verilog/FPALU.v}
+# analyze -format verilog -library work ../../verilog/FPALU.v
+read_verilog {./FPALU.nl.v}
 read_verilog {../../verilog/FIR.v}
+
+set search_path [list "." "/tools/synopsys/syn/O-2018.06-SP5-1/libraries/syn/" \
+					"../../../../../mem_comp/SP_CMEM/" \
+					"../../../../../mem_comp/SP_DMEM/" \
+					"../../../../../mem_comp/SP_REGFile/"]
+
+set synthetic_library [list "dw_foundation.sldb"]
+set target_library [list \
+				"/courses/ee6321/share/ibm13rflpvt/synopsys/scx3_cmos8rf_lpvt_tt_1p2v_25c.db" \
+				"SP_CMEM_tt_1p2v_25c_syn.db" \
+				"SP_DMEM_tt_1p2v_25c_syn.db" \
+				"SP_REGF_tt_1p2v_25c_syn.db" ]
+
+
+set link_library [list "*" \
+				"/courses/ee6321/share/ibm13rflpvt/synopsys/scx3_cmos8rf_lpvt_tt_1p2v_25c.db" \
+				"dw_foundation.sldb" \
+				"SP_CMEM_tt_1p2v_25c_syn.db" \
+				"SP_DMEM_tt_1p2v_25c_syn.db" \
+				"SP_REGF_tt_1p2v_25c_syn.db" ]
+
 
 set set_fix_multiple_port_nets "true"
 list_designs
@@ -65,4 +87,4 @@ report_timing -delay max -nworst 1 -max_paths 10000 -path full -nosplit -unique 
 report_timing -delay max -nworst 1 -max_paths 10000 -path end -nosplit -unique -sort_by slack -to [all_outputs] > ${top_level}.syn.critical_regs.output
 report_timing -delay max -nworst 1 -max_paths 10000 -path end -nosplit -unique -sort_by slack -to [all_registers -data_pins] > ${top_level}.syn.critical_regs.regs
 report_timing -delay min -nworst 1 -max_paths 10000 -path short -nosplit -unique -sort_by slack > ${top_level}.syn.fast_path
-quit
+# quit

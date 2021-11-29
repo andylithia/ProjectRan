@@ -1,0 +1,525 @@
+****************************************
+Report : design
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+Design Attribute                         Value
+---------------------------------------------------------------------------
+Operating Conditions:
+  analysis_type                          on_chip_variation
+  operating_condition_min_name           tt_1p2v_25c
+  process_min                            1
+  temperature_min                        25
+  voltage_min                            1.2
+  tree_type_min                          balanced_case
+
+  operating_condition_max_name           tt_1p2v_25c
+  process_max                            1
+  temperature_max                        25
+  voltage_max                            1.2
+  tree_type_max                          balanced_case
+
+Wire Load:                               (use report_wire_load for more information)
+  wire_load_mode                         top
+  wire_load_model_max                    --
+  wire_load_model_min                    --
+  wire_load_selection_group_max          --
+  wire_load_selection_group_min          --
+  wire_load_min_block_size               0
+
+Design Rules:
+  max_capacitance                        --
+  min_capacitance                        --
+  max_fanout                             --
+  max_transition                         --
+  static_integrity                       --
+  dynamic_integrity                      --
+  max_area                               --
+
+Timing Ranges:
+  early_factor                           --
+  late_factor                            --
+
+Pin Input Delays:
+None specified.
+
+Pin Output Delays:
+None specified.
+Fast Analysis:                           disabled
+
+1
+****************************************
+Report : reference
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+
+Attributes:
+    b - black-box (unknown)
+    h - hierarchical
+    n - noncombinational
+    u - contains unmapped logic
+    A - abstracted timing model
+    E - extracted timing model
+    S - Stamp timing model
+    Q - Quick timing model (QTM)
+
+Reference          Library       Unit Area   Count    Total Area   Attributes
+--------------------------------------------------------------------------------
+*SP_CMEM                            0.00     1           0.00      h
+*SP_DMEM                            0.00     1           0.00      h
+*SP_REGF                            0.00     1           0.00      h
+AND3X1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     6          51.84      
+AND4X1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     2          20.16      
+AO21XLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     6          51.84      
+AO22X1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     1          10.08      
+AO22XLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     182      1834.56      
+AOI211X1TS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     1           8.64      
+AOI211XLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     13        112.32      
+AOI21X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     44        316.80      
+AOI221XLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   11.52     44        506.88      
+AOI222XLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   12.96     9         116.64      
+AOI22X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     276      2384.64      
+AOI2BB1XLTS        scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     13        112.32      
+AOI2BB2XLTS        scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     2          20.16      
+AOI31XLTS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     6          51.84      
+AOI32X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     11        110.88      
+CLKAND2X2TS        scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     29        208.80      
+CLKBUFX2TS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    5.76     189      1088.64      
+CLKINVX1TS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    4.32     1           4.32      
+CMPR32X2TS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   31.68     74       2344.32      
+DFFNSRX1TS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   34.56     137      4734.72      n
+DFFQX1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   24.48     374      9155.52      n
+DFFRXLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   33.12     19        629.28      n
+DFFSX1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   30.24     7         211.68      n
+DFFXLTS            scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   25.92     2          51.84      n
+EDFFX1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   34.56     10        345.60      n
+INVX2TS            scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    4.32     615      2656.80      
+NAND2BXLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     7          50.40      
+NAND2X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    5.76     107       616.32      
+NAND3BXLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     6          51.84      
+NAND3XLTS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     16        115.20      
+NAND4BXLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     1          10.08      
+NAND4XLTS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     11         95.04      
+NOR2BX1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     30        216.00      
+NOR2X1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    5.76     3          17.28      
+NOR2XLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    5.76     69        397.44      
+NOR3BXLTS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     2          17.28      
+NOR3XLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     9          64.80      
+NOR4XLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     18        155.52      
+OA21XLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     4          34.56      
+OA22X1TS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     1          10.08      
+OAI211X1TS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     8          69.12      
+OAI211XLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     34        293.76      
+OAI21X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     4          28.80      
+OAI21XLTS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     64        460.80      
+OAI221XLTS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   11.52     46        529.92      
+OAI222X1TS         scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   14.40     3          43.20      
+OAI22X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     24        207.36      
+OAI2BB1X1TS        scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     21        181.44      
+OAI2BB2XLTS        scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     1          10.08      
+OAI31X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     6          51.84      
+OAI32X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     5          50.40      
+OR2X1TS            scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    7.20     15        108.00      
+OR3X1TS            scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                    8.64     3          25.92      
+OR4X2TS            scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   10.08     3          30.24      
+TLATXLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   15.84     82       1298.88      n
+XNOR2X1TS          scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   11.52     24        276.48      
+XOR2XLTS           scx3_cmos8rf_lpvt_tt_1p2v_25c
+                                   11.52     14        161.28      
+--------------------------------------------------------------------------------
+Total 60 references                                   32820.48
+1
+****************************************
+Report : constraint
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+                                                   Weighted
+    Group (max_delay/setup)      Cost     Weight     Cost
+    -----------------------------------------------------
+    clock_gating_default         0.00      1.00      0.00
+    clk                          0.00      1.00      0.00
+    -----------------------------------------------------
+    max_delay/setup                                  0.00
+
+                                                   Weighted
+    Group (min_delay/hold)       Cost     Weight     Cost
+    -----------------------------------------------------
+    clock_gating_default       582.29      1.00    582.29
+    clk                          0.00      1.00      0.00
+    -----------------------------------------------------
+    min_delay/hold                                 582.29
+
+    Constraint                                       Cost
+    -----------------------------------------------------
+    max_delay/setup                                  0.00  (MET)
+    min_delay/hold                                 582.29  (VIOLATED)
+    recovery                                         0.00  (MET)
+    removal                                          0.00  (MET)
+    clock_gating_setup                               0.00  (MET)
+    clock_gating_hold                              582.29  (VIOLATED)
+    sequential_clock_pulse_width                     0.00  (MET)
+    clock_tree_pulse_width                           0.00  (MET)
+    sequential_clock_min_period                      0.00  (MET)
+    max_capacitance                                  0.00  (MET)
+    max_transition                                   0.00  (MET)
+
+1
+****************************************
+Report : constraint
+	-all_violators
+	-path slack_only
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+
+
+   min_delay/hold ('clock_gating_default' group)
+
+   Endpoint                                                  Slack
+   -----------------------------------------------------------------
+   U7/A                                                   -194.3671 (VIOLATED)
+   U345/A1                                                -194.1774 (VIOLATED)
+   U345/A0                                                -193.7492 (VIOLATED)
+
+
+
+
+
+   clock_gating_hold
+
+   Endpoint                                                  Slack
+   -----------------------------------------------------------------
+   U7/A                                                   -194.3671 (VIOLATED)
+   U345/A1                                                -194.1774 (VIOLATED)
+   U345/A0                                                -193.7492 (VIOLATED)
+
+
+1
+****************************************
+Report : timing
+	-path_type full
+	-delay_type min_max
+	-max_paths 1
+	-sort_by slack
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+
+  Startpoint: ss_r_reg_14_
+               (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: U7 (falling clock gating-check end-point clocked by clk')
+  Path Group: **clock_gating_default**
+  Path Type: min
+
+  Point                                    Incr       Path
+  ---------------------------------------------------------------
+  clock clk (rise edge)                  0.0000     0.0000
+  clock network delay (ideal)            0.0000     0.0000
+  ss_r_reg_14_/CK (DFFSX1TS)             0.0000     0.0000 r
+  ss_r_reg_14_/Q (DFFSX1TS)              0.6329     0.6329 r
+  U7/A (NOR2X1TS)                        0.0000     0.6329 r
+  data arrival time                                 0.6329
+
+  clock clk' (rise edge)               195.0000   195.0000
+  clock network delay (ideal)            0.0000   195.0000
+  clock reconvergence pessimism          0.0000   195.0000
+  U7/B (NOR2X1TS)                                 195.0000 r
+  clock gating hold time                 0.0000   195.0000
+  data required time                              195.0000
+  ---------------------------------------------------------------
+  data required time                              195.0000
+  data arrival time                                -0.6329
+  ---------------------------------------------------------------
+  slack (VIOLATED)                                -194.3671
+
+
+
+  Startpoint: u_fpalu_s5_opcode_r_reg_0_
+               (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: alumux_dly_reg_27_
+               (falling edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  ------------------------------------------------------------------------------
+  clock clk (rise edge)                                 0.0000     0.0000
+  clock network delay (ideal)                           0.0000     0.0000
+  u_fpalu_s5_opcode_r_reg_0_/CK (DFFQX1TS)              0.0000     0.0000 r
+  u_fpalu_s5_opcode_r_reg_0_/Q (DFFQX1TS)               0.7437     0.7437 f
+  U1689/Y (INVX2TS)                                     0.1171     0.8608 r
+  U1690/Y (INVX2TS)                                     0.0770     0.9378 f
+  U1908/Y (NOR2XLTS)                                    0.4204     1.3581 r
+  U1515/Y (NOR2XLTS)                                    0.3566     1.7147 f
+  U1550/Y (INVX2TS)                                     0.1302     1.8449 r
+  U1551/Y (INVX2TS)                                     0.0697     1.9146 f
+  U1489/Y (AO22XLTS)                                    0.5056     2.4202 f
+  intadd_2_U6/CO (CMPR32X2TS)                           0.6867     3.1069 f
+  intadd_2_U5/CO (CMPR32X2TS)                           0.4733     3.5802 f
+  intadd_2_U4/CO (CMPR32X2TS)                           0.4732     4.0534 f
+  intadd_2_U3/CO (CMPR32X2TS)                           0.4732     4.5266 f
+  intadd_2_U2/CO (CMPR32X2TS)                           0.4598     4.9864 f
+  U2796/Y (XNOR2X1TS)                                   0.2421     5.2285 f
+  U1494/Y (OAI21XLTS)                                   0.3154     5.5439 r
+  U2798/Y (AOI21X1TS)                                   0.2218     5.7657 f
+  U3329/Y (AO22XLTS)                                    0.5612     6.3270 f
+  alumux_dly_reg_27_/D (DFFNSRX1TS)                     0.0000     6.3270 f
+  data arrival time                                                6.3270
+
+  clock clk (fall edge)                               195.0000   195.0000
+  clock network delay (ideal)                           0.0000   195.0000
+  clock reconvergence pessimism                         0.0000   195.0000
+  alumux_dly_reg_27_/CKN (DFFNSRX1TS)                            195.0000 f
+  library setup time                                   -0.5012   194.4988
+  data required time                                             194.4988
+  ------------------------------------------------------------------------------
+  data required time                                             194.4988
+  data arrival time                                               -6.3270
+  ------------------------------------------------------------------------------
+  slack (MET)                                                    188.1718
+
+
+1
+****************************************
+Report : Switching Activity
+	
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+ Switching Activity Overview Statistics for "W4823_FIR"
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                  From Activity     From         From         From             From            From                                                            Not
+Object Type       File (%)          SSA (%)      SSA Force (%) SSA Force (%)   SCA (%)         Clock (%)       Default (%)     Propagated(%)   Implied(%)      Annotated(%)  Total
+                                                 Annotated    Implied                                                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nets             2940(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2940
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Nets Driven by
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Primary Input     44(100.00%)       0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      44
+Tri-State         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Black Box         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Sequential        666(100.00%)      0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      666
+Combinational     2230(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2230
+Memory            0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Clock Gate        0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Static Probability Overview Statistics for "W4823_FIR"
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                  From Activity     From         From         From             From            From                                                            Not
+Object Type       File (%)          SSA (%)      SSA Force (%) SSA Force (%)   SCA (%)         Clock (%)       Default (%)     Propagated(%)   Implied(%)      Annotated(%)  Total
+                                                 Annotated    Implied                                                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nets             2940(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2940
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Nets Driven by
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Primary Input     44(100.00%)       0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      44
+Tri-State         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Black Box         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Sequential        666(100.00%)      0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      666
+Combinational     2230(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2230
+Memory            0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Clock Gate        0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1
+****************************************
+Report : Switching Activity
+	-list_not_annotated
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+ Switching Activity Overview Statistics for "W4823_FIR"
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                  From Activity     From         From         From             From            From                                                            Not
+Object Type       File (%)          SSA (%)      SSA Force (%) SSA Force (%)   SCA (%)         Clock (%)       Default (%)     Propagated(%)   Implied(%)      Annotated(%)  Total
+                                                 Annotated    Implied                                                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nets             2940(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2940
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Nets Driven by
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Primary Input     44(100.00%)       0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      44
+Tri-State         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Black Box         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Sequential        666(100.00%)      0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      666
+Combinational     2230(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2230
+Memory            0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Clock Gate        0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Static Probability Overview Statistics for "W4823_FIR"
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                  From Activity     From         From         From             From            From                                                            Not
+Object Type       File (%)          SSA (%)      SSA Force (%) SSA Force (%)   SCA (%)         Clock (%)       Default (%)     Propagated(%)   Implied(%)      Annotated(%)  Total
+                                                 Annotated    Implied                                                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nets             2940(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2940
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Nets Driven by
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Primary Input     44(100.00%)       0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      44
+Tri-State         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Black Box         0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Sequential        666(100.00%)      0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      666
+Combinational     2230(100.00%)     0(0.00%)     0(0.00%)     0(0.00%)         0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)        0(0.00%)      2230
+Memory            0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+Clock Gate        0(0%)             0(0%)        0(0%)        0(0%)            0(0%)           0(0%)           0(0%)           0(0%)           0(0%)           0(0%)         0
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+List of nonannotated nets :
+1
+****************************************
+Report : Time Based Power
+	-verbose
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+Sampling Interval: 1 ns
+
+Library(s) Used:
+
+    scx3_cmos8rf_lpvt_tt_1p2v_25c (File: /courses/ee6321/share/ibm13rflpvt/synopsys/scx3_cmos8rf_lpvt_tt_1p2v_25c.db)
+    USERLIB (File: /homes/user/stud/spring21/al4116/project/mem_comp/SP_CMEM/SP_CMEM_tt_1p2v_25c_syn.db)
+    USERLIB (File: /homes/user/stud/spring21/al4116/project/mem_comp/SP_DMEM/SP_DMEM_tt_1p2v_25c_syn.db)
+    USERLIB (File: /homes/user/stud/spring21/al4116/project/mem_comp/SP_REGFile/SP_REGF_tt_1p2v_25c_syn.db)
+
+
+Operating Conditions: tt_1p2v_25c   Library: scx3_cmos8rf_lpvt_tt_1p2v_25c
+Wire Load Model Mode: top
+
+<no wire load model is set>
+
+Power-specific unit information :
+    Voltage Units = 1 V
+    Capacitance Units = 1 pf
+    Time Units = 1 ns
+    Dynamic Power Units = 1 W
+    Leakage Power Units = 1 W
+
+
+
+  Attributes
+  ----------
+      i  -  Including register clock pin internal power
+      u  -  User defined power group
+
+                        Internal  Switching  Leakage    Total
+Power Group             Power     Power      Power      Power   (     %)  Attrs
+--------------------------------------------------------------------------------
+clock_network           1.289e-05 1.754e-06 3.218e-11 1.465e-05 (91.00%)  i
+register                4.497e-07 1.050e-07 2.049e-08 5.752e-07 ( 3.57%)  
+combinational           4.155e-07 3.410e-07 1.600e-08 7.726e-07 ( 4.80%)  
+sequential              9.595e-08 3.227e-09 2.091e-09 1.013e-07 ( 0.63%)  
+memory                     0.0000    0.0000    0.0000    0.0000 ( 0.00%)  
+io_pad                     0.0000    0.0000    0.0000    0.0000 ( 0.00%)  
+black_box                  0.0000 1.635e-10    0.0000 1.635e-10 ( 0.00%)  
+
+  Net Switching Power  = 2.203e-06   (13.69%)
+  Cell Internal Power  = 1.386e-05   (86.07%)
+  Cell Leakage Power   = 3.861e-08   ( 0.24%)
+                         ---------
+Total Power            = 1.610e-05  (100.00%)
+
+X Transition Power     = 5.325e-07
+Glitching Power        =    0.0000
+
+Peak Power             = 1.439e-03
+Peak Time              =   6542061
+
+1
+****************************************
+Report : Time Based Power
+	-hierarchy
+Design : W4823_FIR
+Version: P-2019.03-SP2
+Date   : Mon Nov 29 12:32:30 2021
+****************************************
+
+
+
+                                      Int      Switch   Leak      Total
+Hierarchy                             Power    Power    Power     Power    %
+--------------------------------------------------------------------------------
+W4823_FIR                             1.39e-05 2.20e-06 3.86e-08  1.61e-05 100.0
+
+
+                                      Peak     Peak            Glitch   X-tran
+Hierarchy                             Power    Time            Power    Power
+--------------------------------------------------------------------------------
+W4823_FIR                             1.44e-03 6542061-6542062    0.000 5.33e-07
+1

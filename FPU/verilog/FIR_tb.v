@@ -65,8 +65,8 @@ end
 
 W4823_FIR dut (
     .rst_n(rst_n),
-    .clk1(clk_slow),
-    .clk2(clk_fast),
+    .clk_slow(clk_slow),
+    .clk(clk_fast),
     .din(din),
     .valid_in(1'b0),
     .cin(cin),

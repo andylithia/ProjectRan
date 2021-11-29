@@ -1,9 +1,8 @@
-set top_level W4823_FIR
+set top_level FPALU
 source -verbose "../common_script/common.tcl"
-#analyze -format verilog -library work ../../verilog/misc.v
-#analyze -format verilog -library work ../../verilog/sp_sram.v
-#read_verilog {../../verilog/FPALU.v}
-read_verilog {../../verilog/FIR.v}
+enable_write_lib_mode
+analyze -format verilog -library work ../../verilog/misc.v
+read_verilog {../../verilog/FPALU.v}
 
 set set_fix_multiple_port_nets "true"
 list_designs
@@ -16,7 +15,7 @@ if { [check_error -v] == 1 } { exit 1 }
 current_design $top_level
 link
 check_design
-source -verbose "./timing.tcl"
+source -verbose "./timing_fpalu.tcl"
 set_max_capacitance 0.005 [all_inputs]
 # set_load 1 [all_outputs]
 # set_input_delay -min 5 [all_inputs]
@@ -65,4 +64,8 @@ report_timing -delay max -nworst 1 -max_paths 10000 -path full -nosplit -unique 
 report_timing -delay max -nworst 1 -max_paths 10000 -path end -nosplit -unique -sort_by slack -to [all_outputs] > ${top_level}.syn.critical_regs.output
 report_timing -delay max -nworst 1 -max_paths 10000 -path end -nosplit -unique -sort_by slack -to [all_registers -data_pins] > ${top_level}.syn.critical_regs.regs
 report_timing -delay min -nworst 1 -max_paths 10000 -path short -nosplit -unique -sort_by slack > ${top_level}.syn.fast_path
+
+list_lib
+write_lib USERLIB -output ./FPALU_tt_1p2v_25c_syn.db
+
 quit

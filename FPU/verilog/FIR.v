@@ -17,7 +17,9 @@ module W4823_FIR(
 	output [28:0]   dout_29i	// Raw Output from the ALU
 );
 
-`define DEBUGINFO
+// Remember to disable this before DC
+// `define DEBUGINFO
+`define USE_VENDOR_MEMORY
 
 // +----------------------------------+
 // |     Part 1. State Controller     |
@@ -450,6 +452,46 @@ assign dout_29i = alu_y_29i;
 // +--------------------------+
 // 
 `ifdef USE_VENDOR_MEMORY
+	
+	// DMEM: 16b x 64w
+	SP_DMEM u_dmem (
+		.Q   (dmem_q_fp16),
+		.CLK (dmem_clk   ),
+		.CEN (~rst_n     ),
+		.WEN (~dmem_wr_r ),
+		.A   (dmem_addr_r),
+		.D   (din        )
+	);
+
+	// CMEM: 16b x 64w
+	wire [15:0] cmem_q_fp16;
+	wire [15:0] cmem_din_fp16;
+	SP_CMEM u_cmem (
+		.Q   (cmem_q_fp16),
+		.CLK (cmem_clk   ),
+		.CEN (~rst_n     ),
+		.WEN (~cmem_wr   ),
+		.A   (cmem_addr  ),
+		.D   (cmem_din_fp16)
+	);
+	assign cmem_q_fp16i[16]    = cmem_q_fp16[15];
+	assign cmem_q_fp16i[15:12] = cmem_q_fp16[14:11];
+	assign cmem_q_fp16i[11]    = 1'b1;
+	assign cmem_q_fp16i[10:0]  = cmem_q_fp16[10:0];
+
+	assign cmem_din_fp16[15]    = cmem_din_FP16i[16];
+	assign cmem_din_fp16[14:11] = cmem_din_FP16i[15:12];
+	assign cmem_din_fp16[10:0]  = cmem_din_FP16i[10:0];
+
+ 	// REGFile: 29b x 59w
+	SP_REGF u_regf (
+		.Q   (regf_q_fp29i ),
+		.CLK (regf_clk     ),
+		.CEN (~rst_n       ),
+		.WEN (~regf_wr_r   ),
+		.A   (regf_addr_r  ),
+		.D   (alumux_self_fp29i)
+	);
 
 `else
 
