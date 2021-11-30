@@ -18,9 +18,9 @@ module W4823_FIR(
 );
 
 // Remember to disable this before DC
-// `define DEBUGINFO
-`define USE_VENDOR_MEMORY
-
+`define DEBUGINFO
+// `define USE_VENDOR_MEMORY
+`define USE_DUMMY_ALU
 // +----------------------------------+
 // |     Part 1. State Controller     |
 // +----------------------------------+
@@ -176,6 +176,8 @@ reg [5:0]	dmem_addr_r;
 // DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
 // wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
 wire din_latch;
+reg [15:0] din_r;
+
 wire dmem_clk; 
 assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
 assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
@@ -185,6 +187,10 @@ reg cycle_dinlatch_pulse_r;
 always @(posedge cycle_dinlatch or negedge clk_fast) begin
 	if(~clk_fast) cycle_dinlatch_pulse_r <= 0;
 	else          cycle_dinlatch_pulse_r <= 1;
+end
+
+always @(negedge cycle_dinlatch_pulse_r) begin
+	din_r <= din;
 end
 
 always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
@@ -296,16 +302,18 @@ always @(negedge alu_clk) begin
 end
 
 // S1 doesn't have a latch
+reg [1:0] alu_opcode_r;
 always @(posedge alu_clk) begin
-	alu_a_29i_r <= alu_a_29i;
-	alu_b_29i_r <= alu_b_29i;
+	alu_a_29i_r  <= alu_a_29i;
+	alu_b_29i_r  <= alu_b_29i;
+	alu_opcode_r <= alu_opcode;
 end
 
 
 
 // ALL FP16 Data Connectors are RIGHT ALIGNED
 // MUX of input A
-assign alumux_din_fp16  = {din[15], 1'bx, din[14:10], {12{1'bx}}, din[9:0]}; 		// FP16
+assign alumux_din_fp16  = {din_r[15], 1'bx, din_r[14:10], {12{1'bx}}, din_r[9:0]}; 		// FP16
 assign alumux_dmem_fp16  = {dmem_q_fp16[15], 1'bx, dmem_q_fp16[14:10], {12{1'bx}}, dmem_q_fp16[9:0]}; 		// FP16
 
 // MUX of input B
@@ -429,21 +437,35 @@ always @* begin
 end
 
 // ALU instance
-
-FPALU u_fpalu(
-	.clk               (alu_clk   ),
-	.opcode            (alu_opcode),
-	.din_uni_a_sgn     (alu_a_s   ),
-	.din_uni_a_exp     (alu_a_e   ),
-	.din_uni_a_man_dn  (alu_a_m   ),
-	.din_uni_b_sgn     (alu_b_s   ),
-	.din_uni_b_exp     (alu_b_e   ),
-	.din_uni_b_man_dn  (alu_b_m   ),
-	.dout_uni_y_sgn    (alu_y_s   ),
-	.dout_uni_y_exp    (alu_y_e   ),
-	.dout_uni_y_man_dn (alu_y_m   )
-);
-
+`ifdef USE_DUMMY_ALU
+	FPALU_dummy u_fpalu(
+		.clk               (alu_clk   ),
+		.opcode            (alu_opcode_r),
+		.din_uni_a_sgn     (alu_a_s   ),
+		.din_uni_a_exp     (alu_a_e   ),
+		.din_uni_a_man_dn  (alu_a_m   ),
+		.din_uni_b_sgn     (alu_b_s   ),
+		.din_uni_b_exp     (alu_b_e   ),
+		.din_uni_b_man_dn  (alu_b_m   ),
+		.dout_uni_y_sgn    (alu_y_s   ),
+		.dout_uni_y_exp    (alu_y_e   ),
+		.dout_uni_y_man_dn (alu_y_m   )
+	);
+`else
+	FPALU u_fpalu(
+		.clk               (alu_clk   ),
+		.opcode            (alu_opcode_r),
+		.din_uni_a_sgn     (alu_a_s   ),
+		.din_uni_a_exp     (alu_a_e   ),
+		.din_uni_a_man_dn  (alu_a_m   ),
+		.din_uni_b_sgn     (alu_b_s   ),
+		.din_uni_b_exp     (alu_b_e   ),
+		.din_uni_b_man_dn  (alu_b_m   ),
+		.dout_uni_y_sgn    (alu_y_s   ),
+		.dout_uni_y_exp    (alu_y_e   ),
+		.dout_uni_y_man_dn (alu_y_m   )
+	);
+`endif /* USE_DUMMY_ALU */
 assign dout     = alu_y_29i;
 assign dout_29i = alu_y_29i;
 
@@ -456,11 +478,11 @@ assign dout_29i = alu_y_29i;
 	// DMEM: 16b x 64w
 	SP_DMEM u_dmem (
 		.Q   (dmem_q_fp16),
-		.CLK (dmem_clk   ),
+		.CLK (dmem_clk^~dmem_wr_r   ),
 		.CEN (~rst_n     ),
 		.WEN (~dmem_wr_r ),
 		.A   (dmem_addr_r),
-		.D   (din        )
+		.D   (din_r        )
 	);
 
 	// CMEM: 16b x 64w
@@ -502,7 +524,7 @@ sp_sram #(
 ) u_dmem (
 	.clk  (dmem_clk   ),
 	.addr (dmem_addr_r),
-	.din  (din        ),
+	.din  (din_r        ),
 	.wr   (dmem_wr_r  ),
 	.qout (dmem_q_fp16)
 );

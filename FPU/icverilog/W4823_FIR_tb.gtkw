@@ -1,44 +1,56 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Sat Nov 27 22:05:20 2021
+[*] Tue Nov 30 03:58:41 2021
 [*]
 [dumpfile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.vcd"
-[dumpfile_mtime] "Sat Nov 27 22:04:46 2021"
-[dumpfile_size] 41026
+[dumpfile_mtime] "Tue Nov 30 03:57:12 2021"
+[dumpfile_size] 199793
 [savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.gtkw"
-[timestart] 100195312500
-[size] 1680 997
-[pos] 0 11
-*-33.842510 100976562500 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 6498511000000
+[size] 836 991
+[pos] 841 17
+*-29.553282 6525585937500 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] W4823_FIR_tb.
 [sst_width] 193
 [signals_width] 245
 [sst_expanded] 1
-[sst_vpaned_height] 306
+[sst_vpaned_height] 304
 @22
 W4823_FIR_tb.clk_div[7:0]
 @28
 W4823_FIR_tb.clk_fast
 W4823_FIR_tb.clk_slow
 W4823_FIR_tb.rst_n
+W4823_FIR_tb.dut.cycle_dinlatch
 W4823_FIR_tb.dut.cycle_load
+W4823_FIR_tb.dut.cycle_mul_ndav
 W4823_FIR_tb.dut.cycle_mul
 W4823_FIR_tb.dut.cycle_acc_thru
 W4823_FIR_tb.dut.cycle_acc
 W4823_FIR_tb.dut.cycle_accnorm
 W4823_FIR_tb.dut.cycle_sleep
-@420
-W4823_FIR_tb.dut.alu_clk_cnt
 @200
 -vvvvv Input Buffer (DMEM)
 @28
 W4823_FIR_tb.dut.din_latch
-W4823_FIR_tb.dut.dmem_wr
 W4823_FIR_tb.dut.dmem_clk
 W4823_FIR_tb.dut.alu_clk
 @22
+W4823_FIR_tb.dut.din[15:0]
+@23
+W4823_FIR_tb.dut.din_r[15:0]
+@22
 W4823_FIR_tb.dut.dmem_addr_r[5:0]
+W4823_FIR_tb.dut.dmem_q_fp16[15:0]
+W4823_FIR_tb.dut.cmem_addr[5:0]
+W4823_FIR_tb.dut.cmem_q_fp16i[16:0]
 @28
 W4823_FIR_tb.dut.alu_opcode[1:0]
+@22
+W4823_FIR_tb.dut.alu_a_m[21:0]
+W4823_FIR_tb.dut.alu_b_m[21:0]
+W4823_FIR_tb.dut.alu_y_m[21:0]
+@420
+W4823_FIR_tb.dut.dbg_alumux_state
 [pattern_trace] 1
 [pattern_trace] 0

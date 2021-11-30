@@ -1,4 +1,4 @@
 #!/bin/bash
-iverilog -Wall -o W4823_FIR_tb.vvp ../verilog/FIR_tb.v ../verilog/FIR.v
+iverilog -Wall -o W4823_FIR_tb.vvp ../verilog/FIR_tb.v ../verilog/FIR.v ../verilog/FPALU_dummy.v ../verilog/sp_sram.v
 vvp W4823_FIR_tb.vvp
 gtkwave W4823_FIR_tb.vcd W4823_FIR_tb.gtkw
