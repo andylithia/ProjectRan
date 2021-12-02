@@ -18,8 +18,9 @@ module W4823_FIR(
 );
 
 // Remember to disable this before DC
-`define DEBUGINFO
-// `define USE_VENDOR_MEMORY
+// `define DEBUGINFO
+// `define USE_VENDOR_CGC
+`define USE_VENDOR_MEMORY
 `define USE_DUMMY_ALU
 // +----------------------------------+
 // |     Part 1. State Controller     |
@@ -165,22 +166,24 @@ end
 
 // CMEM can be written-to in the first 256-clk cycle
 // from the outside
-wire        cmem_wr = first_cycle_r;	// Internal
+wire        cmem_wr = first_cycle_r&clk_slow;	// Internal
 wire        cmem_clk;					// Muxed
 wire [5:0]  cmem_addr;					// Muxed
 reg  [5:0]  cmem_addr_r;				// Internal
 wire [16:0] cmem_din_FP16i = cin;		// External 
 
 reg         dmem_wr_r;
-reg [5:0]	dmem_addr_r;
+wire         dmem_clk;
+wire         dmem_clk_en;
+// wire         dmem_wr_r = cycle_dinlatch&~cycle_load;
+reg [5:0]	 dmem_addr_r;
 // DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
 // wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
 wire din_latch;
 reg [15:0] din_r;
 
-wire dmem_clk; 
 assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
-assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
+// assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
 wire dmem_cmem_rst = dmem_wr_r&~dmem_clk;
 reg cycle_dinlatch_pulse_r;
 // Modded because DC complains about polarity
@@ -188,22 +191,31 @@ always @(posedge cycle_dinlatch or negedge clk_fast) begin
 	if(~clk_fast) cycle_dinlatch_pulse_r <= 0;
 	else          cycle_dinlatch_pulse_r <= 1;
 end
-
+/*
 always @(negedge cycle_dinlatch_pulse_r) begin
 	din_r <= din;
 end
-
-always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
-	if(cycle_dinlatch_pulse_r) begin
-		dmem_wr_r   <= 1;
+*/
+always @(posedge cycle_dinlatch) begin
+	din_r <= din;
+end
+always @(posedge cycle_dinlatch or negedge dmem_clk) begin
+	if(cycle_dinlatch) begin
+		// dmem_wr_r   <= 1;
 		cmem_addr_r <= 0;
 	end else begin
-		dmem_wr_r   <= 0;
+		// dmem_wr_r   <= 0;
 		cmem_addr_r <= cmem_addr_r + 1;
 	end
 end
 
-wire alu_clk = ~cycle_sleep & clk_fast;
+always @(negedge clk_fast) begin
+	if(cycle_dinlatch&&dmem_wr_r==0) dmem_wr_r <= 1;
+	else                             dmem_wr_r <= 0;
+end
+
+wire alu_clk_en = ~cycle_sleep;
+wire alu_clk    =  clk_fast;
 // To remove clock hazard in DMEM clock gating
 // Without this, the last cycle may end 1/2 clock period earlier
 reg cycle_mul_dly1_r;
@@ -222,17 +234,27 @@ reg cycle_acc_thru_dly2_r;
 always @(posedge alu_clk) begin
 	if(cycle_acc_thru) cycle_acc_thru_dly2_r <= 1;
 	else               cycle_acc_thru_dly2_r <= 0;
-
 end
 
 assign din_latch = cycle_dinlatch_pulse_r;
-assign dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru_dly1_r & clk_fast;	// DMEM Clock
-
+assign dmem_clk_en = (cycle_load|cycle_mul_ndav|cycle_mul) & ~cycle_acc_thru_dly1_r;
 // Truncated, loops back automatically when dmem_addr_r >= 64;
-always @(negedge dmem_clk or negedge rst_n) begin
-	if(~rst_n) dmem_addr_r <= 0;
-	else       dmem_addr_r <= dmem_addr_r + 1;
+
+always @(negedge clk_fast or negedge rst_n) begin
+	if(~rst_n)	dmem_addr_r <= 0;
+	else if(dmem_clk_en) dmem_addr_r <= dmem_addr_r + 1;
 end
+
+// Clock Gating
+//
+`ifdef USE_VENDOR_CGC
+		
+`else
+	icgc u_cgc_cmem(.CK(clk_fast),.E(first_cycle_r|dmem_clk_en),.ECK(cmem_clk));
+	icgc u_cgc_alu(.CK(clk_fast),.E(alu_clk_en), .ECK(alu_clk));
+	assign dmem_clk  = dmem_clk_en & clk_fast;	// DMEM Clock
+
+`endif /* USE_VENDOR_CGC */
 
 // +--------------------------------------+
 // |     Part 3. REGFile Data Control     |
@@ -478,20 +500,21 @@ assign dout_29i = alu_y_29i;
 	// DMEM: 16b x 64w
 	SP_DMEM u_dmem (
 		.Q   (dmem_q_fp16),
-		.CLK (dmem_clk^~dmem_wr_r   ),
-		.CEN (~rst_n     ),
+		.CLK (clk_fast  ),
+		.CEN (~(dmem_clk_en|cycle_dinlatch)),
 		.WEN (~dmem_wr_r ),
 		.A   (dmem_addr_r),
 		.D   (din_r        )
 	);
+
 
 	// CMEM: 16b x 64w
 	wire [15:0] cmem_q_fp16;
 	wire [15:0] cmem_din_fp16;
 	SP_CMEM u_cmem (
 		.Q   (cmem_q_fp16),
-		.CLK (cmem_clk   ),
-		.CEN (~rst_n     ),
+		.CLK (clk_fast^first_cycle_r),
+		.CEN (~(first_cycle_r|dmem_clk_en)),
 		.WEN (~cmem_wr   ),
 		.A   (cmem_addr  ),
 		.D   (cmem_din_fp16)
