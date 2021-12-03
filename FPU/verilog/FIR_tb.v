@@ -34,8 +34,8 @@ initial begin
 	load_cmem_cnt_r = 0;
 	din = 0;
 
-    #1 rst_n = 0;
-    #1 rst_n = 1;
+    #100 rst_n = 0;
+    #100 rst_n = 1;
     #193.3125 clk_fast = 1;
     //#100000
 	// #10000000

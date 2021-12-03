@@ -4,7 +4,7 @@
 Report : area
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:57 2021
 ****************************************
 
 Library(s) Used:
@@ -39,7 +39,7 @@ Report : power
         -analysis_effort medium
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:57 2021
 ****************************************
 
 
@@ -72,7 +72,7 @@ FPALU                                  2.16e-03 2.24e-02 2.41e+04 2.46e-02 100.0
 Report : design
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:57 2021
 ****************************************
 
 Design allows ideal nets on clock nets.
@@ -139,7 +139,7 @@ Design Parameters:
 Report : cell
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:57 2021
 ****************************************
 
 Attributes:
@@ -3621,7 +3621,7 @@ Report : port
         -verbose
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:57 2021
 ****************************************
 
 
@@ -4555,7 +4555,7 @@ dout_uni_y_sgn
 Report : compile_options
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:57 2021
 ****************************************
 
 Design                                   Compile Option         Value
@@ -4578,7 +4578,7 @@ Report : constraint
         -verbose
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:58 2021
 ****************************************
 
 
@@ -4600,7 +4600,7 @@ Report : timing
         -max_paths 100
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:58 2021
 ****************************************
 
 Operating Conditions: tt_1p2v_25c   Library: scx3_cmos8rf_lpvt_tt_1p2v_25c

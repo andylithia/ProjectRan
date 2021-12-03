@@ -9,7 +9,12 @@ vmap work work
 # Include Netlist and Testbench
 vlog +acc -incr ../verilog/misc.v
 vlog +acc -incr ../verilog/FPALU_dummy.v
-vlog +acc -incr ../verilog/sp_sram.v
+# vlog +acc -incr ../verilog/sp_sram.v
+# vlog +acc -incr ../verilog/FPALU.v
+vlog +acc -incr ../../../../mem_comp/SP_CMEM/SP_CMEM.v
+vlog +acc -incr ../../../../mem_comp/SP_DMEM/SP_DMEM.v
+vlog +acc -incr ../../../../mem_comp/SP_REGFile/SP_REGF.v
+vlog +acc -incr ../verilog/icgc.v
 vlog +acc -incr ../verilog/FIR.v
 vlog +acc -incr ../verilog/FIR_tb.v
 

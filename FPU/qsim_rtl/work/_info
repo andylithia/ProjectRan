@@ -8,237 +8,357 @@ z2
 !i10f 100
 cModel Technology
 Z0 d/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/qsim_rtl
+T_opt
+!s110 1638491722
+Vk:Uc^QfAck02LoE[4`CiM0
+Z1 04 12 4 work W4823_FIR_tb fast 0
+=4-989096bfd3fa-61a96647-d8751-7109
+Z2 o-quiet -auto_acc_if_foreign -work work
+Z3 tCvgOpt 0
+n@_opt
+Z4 OE;O;10.7b_1;67
+T_opt1
+!s110 1638474742
+Vo1RNH=C=V4mDZ4moG8:OV0
+R1
+=2-989096bfd3fa-61a923f5-a5a57-6396
+R2
+R3
+n@_opt1
+R4
+R0
 vbooth_enc_r4
-Z1 !s110 1638260113
+Z5 !s10a 1638158998
+Z6 !s110 1638426478
 !i10b 1
 !s100 ZgcGiE8g=`4bB^4b=eFf81
 I6ml_<m;Z^Y_l^6kz@9fWj0
-Z2 VDg1SIo80bB@j0V0VzS_@n1
+Z7 VDg1SIo80bB@j0V0VzS_@n1
 R0
-Z3 w1638158998
-Z4 8../verilog/misc.v
-Z5 F../verilog/misc.v
+Z8 w1638158998
+Z9 8../verilog/misc.v
+Z10 F../verilog/misc.v
 L0 122
-Z6 OE;L;10.7b_1;67
+Z11 OE;L;10.7b_1;67
 r1
 !s85 0
 31
-Z7 !s108 1638260112.000000
-Z8 !s107 ../verilog/misc.v|
-Z9 !s90 -reportprogress|300|+acc|-incr|../verilog/misc.v|
+Z12 !s108 1638426477.000000
+Z13 !s107 ../verilog/misc.v|
+Z14 !s90 -reportprogress|300|+acc|-incr|../verilog/misc.v|
 !i113 0
-Z10 o+acc -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
-Z11 tCvgOpt 0
+Z15 o+acc -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R3
 vbooth_ppgen_r4
-R1
+R5
+R6
 !i10b 1
 !s100 B>0iDSge:4om?ZldQRQ693
 IBJfjL1Ta<5LS4khgcPD<e0
-R2
+R7
 R0
-R3
-R4
-R5
+R8
+R9
+R10
 L0 185
-R6
-r1
-!s85 0
-31
-R7
-R8
-R9
-!i113 0
-R10
 R11
-vbsl
-R1
-!i10b 1
-!s100 A0=7:;f9Z<i7[7]QV>@V63
-I3M2ZgWARFD2m1U70hPJF20
-R2
-R0
-R3
-R4
-R5
-L0 48
-R6
-r1
-!s85 0
-31
-R7
-R8
-R9
-!i113 0
-R10
-R11
-vbsr
-R1
-!i10b 1
-!s100 PC?bU3iHdFCVVG=3@J0Pl2
-IVk6<;OmjD>LWnUV0KUAVD3
-R2
-R0
-R3
-R4
-R5
-L0 23
-R6
-r1
-!s85 0
-31
-R7
-R8
-R9
-!i113 0
-R10
-R11
-vcla_adder
-R1
-!i10b 1
-!s100 8PEKnT]lNGbD=Hh>Z8YcO1
-IiPM@>]^Z:1U?;@>CGB:=A2
-R2
-R0
-R3
-R4
-R5
-L0 151
-R6
-r1
-!s85 0
-31
-R7
-R8
-R9
-!i113 0
-R10
-R11
-vcount_lead_zero
-R1
-!i10b 1
-!s100 fXKVhkA<=gNzlKV9:?H<10
-ICUgUn]fWI@Q7^j4SVMa_13
-R2
-R0
-R3
-R4
-R5
-L0 93
-R6
-r1
-!s85 0
-31
-R7
-R8
-R9
-!i113 0
-R10
-R11
-vFPALU_dummy
-R1
-!i10b 1
-!s100 9SD>AXXZP:JeNU7I;jCN[1
-I?5SF`K5>0JW]g?jd0oX1G3
-R2
-R0
-R3
-8../verilog/FPALU_dummy.v
-F../verilog/FPALU_dummy.v
-L0 2
-R6
-r1
-!s85 0
-31
-Z12 !s108 1638260113.000000
-!s107 ../verilog/FPALU_dummy.v|
-!s90 -reportprogress|300|+acc|-incr|../verilog/FPALU_dummy.v|
-!i113 0
-R10
-R11
-n@f@p@a@l@u_dummy
-vsp_sram
-!s110 1638260114
-!i10b 1
-!s100 <`RXd]CMA=XYW[dG_4>3g0
-IDMkn=nHJW78h2j]aR?Uma1
-R2
-R0
-w1638164631
-8../verilog/sp_sram.v
-F../verilog/sp_sram.v
-L0 6
-R6
 r1
 !s85 0
 31
 R12
-!s107 ../verilog/sp_sram.v|
-!s90 -reportprogress|300|+acc|-incr|../verilog/sp_sram.v|
+R13
+R14
 !i113 0
-R10
-R11
-vW4823_FIR
-!s110 1638260115
-!i10b 1
-!s100 ]jY@f9iZBfT@_B]nX_<gL2
-IHf2>Dh5R7XDk5clFm1W6M2
-R2
-R0
-w1638260057
-8../verilog/FIR.v
-F../verilog/FIR.v
-L0 6
+R15
+R3
+vbsl
+R5
 R6
+!i10b 1
+!s100 A0=7:;f9Z<i7[7]QV>@V63
+I3M2ZgWARFD2m1U70hPJF20
+R7
+R0
+R8
+R9
+R10
+L0 48
+R11
 r1
 !s85 0
 31
-!s108 1638260114.000000
-!s107 ../verilog/FIR.v|
-!s90 -reportprogress|300|+acc|-incr|../verilog/FIR.v|
+R12
+R13
+R14
 !i113 0
+R15
+R3
+vbsr
+R5
+R6
+!i10b 1
+!s100 PC?bU3iHdFCVVG=3@J0Pl2
+IVk6<;OmjD>LWnUV0KUAVD3
+R7
+R0
+R8
+R9
 R10
+L0 23
 R11
+r1
+!s85 0
+31
+R12
+R13
+R14
+!i113 0
+R15
+R3
+vcla_adder
+R5
+R6
+!i10b 1
+!s100 8PEKnT]lNGbD=Hh>Z8YcO1
+IiPM@>]^Z:1U?;@>CGB:=A2
+R7
+R0
+R8
+R9
+R10
+L0 151
+R11
+r1
+!s85 0
+31
+R12
+R13
+R14
+!i113 0
+R15
+R3
+vcount_lead_zero
+R5
+R6
+!i10b 1
+!s100 fXKVhkA<=gNzlKV9:?H<10
+ICUgUn]fWI@Q7^j4SVMa_13
+R7
+R0
+R8
+R9
+R10
+L0 93
+R11
+r1
+!s85 0
+31
+R12
+R13
+R14
+!i113 0
+R15
+R3
+vFPALU
+!s110 1638491713
+!i10b 1
+!s100 z2;FJb:^e1@XT>;e0cSdZ1
+I0=H4ZzRnm;E[H:C8YT24g2
+R7
+R0
+w1638169208
+8/homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v
+F/homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v
+L0 11
+R11
+r1
+!s85 0
+31
+!s108 1638491712.000000
+!s107 /homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v|
+!s90 -reportprogress|300|+acc|-L|mtiAvm|-L|mtiRnm|-L|mtiOvm|-L|mtiUvm|-L|mtiUPF|-L|infact|/homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v|
+!i113 0
+R15
+R3
+n@f@p@a@l@u
+vFPALU_dummy
+R5
+!s110 1638426969
+!i10b 1
+!s100 9SD>AXXZP:JeNU7I;jCN[1
+I?5SF`K5>0JW]g?jd0oX1G3
+R7
+R0
+R8
+8../verilog/FPALU_dummy.v
+F../verilog/FPALU_dummy.v
+L0 2
+R11
+r1
+!s85 0
+31
+!s108 1638426968.000000
+!s107 ../verilog/FPALU_dummy.v|
+!s90 -reportprogress|300|+acc|-incr|../verilog/FPALU_dummy.v|
+!i113 0
+R15
+R3
+n@f@p@a@l@u_dummy
+vicgc
+!s10a 1638420928
+!s110 1638426484
+!i10b 1
+!s100 N11De`<:[zZNG17OB4`K[1
+IJjEJ3M7=FRP1GQ[[m8PA93
+R7
+R0
+w1638420928
+8../verilog/icgc.v
+F../verilog/icgc.v
+L0 3
+R11
+r1
+!s85 0
+31
+!s108 1638426483.000000
+!s107 ../verilog/icgc.v|
+!s90 -reportprogress|300|+acc|-incr|../verilog/icgc.v|
+!i113 0
+R15
+R3
+vSP_CMEM
+!s10a 1638159975
+!s110 1638426480
+!i10b 1
+!s100 K;^12[j?1kke=lmMd]k5Q0
+I2_C>QXA3jfK4_YHz2DBc80
+R7
+R0
+w1638159975
+8../../../../mem_comp/SP_CMEM/SP_CMEM.v
+F../../../../mem_comp/SP_CMEM/SP_CMEM.v
+Z16 L0 53
+R11
+r1
+!s85 0
+31
+!s108 1638426479.000000
+!s107 ../../../../mem_comp/SP_CMEM/SP_CMEM.v|
+!s90 -reportprogress|300|+acc|-incr|../../../../mem_comp/SP_CMEM/SP_CMEM.v|
+!i113 0
+R15
+R3
+n@s@p_@c@m@e@m
+vSP_DMEM
+!s10a 1638159760
+!s110 1638426482
+!i10b 1
+!s100 ]?Xb9Jj;JK42m32Fh6^0Q2
+Iz>DhA1O>hZz_@[n?G5a1a3
+R7
+R0
+w1638159760
+8../../../../mem_comp/SP_DMEM/SP_DMEM.v
+F../../../../mem_comp/SP_DMEM/SP_DMEM.v
+R16
+R11
+r1
+!s85 0
+31
+!s108 1638426480.000000
+!s107 ../../../../mem_comp/SP_DMEM/SP_DMEM.v|
+!s90 -reportprogress|300|+acc|-incr|../../../../mem_comp/SP_DMEM/SP_DMEM.v|
+!i113 0
+R15
+R3
+n@s@p_@d@m@e@m
+vSP_REGF
+!s10a 1638160402
+!s110 1638426483
+!i10b 1
+!s100 T^fV<ehRZ20bdY:gA9nMi0
+Iak0cz@1_1W<YnBHKW@nP@2
+R7
+R0
+w1638160402
+8../../../../mem_comp/SP_REGFile/SP_REGF.v
+F../../../../mem_comp/SP_REGFile/SP_REGF.v
+R16
+R11
+r1
+!s85 0
+31
+!s108 1638426482.000000
+!s107 ../../../../mem_comp/SP_REGFile/SP_REGF.v|
+!s90 -reportprogress|300|+acc|-incr|../../../../mem_comp/SP_REGFile/SP_REGF.v|
+!i113 0
+R15
+R3
+n@s@p_@r@e@g@f
+vW4823_FIR
+!s110 1638491716
+!i10b 1
+!s100 hZO`CZFd6o9VQ5jDMQ=T83
+IVEC^OGdI=0J6?e<Elb>Lg3
+R7
+R0
+w1638491695
+8/homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FIR.v
+F/homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FIR.v
+L0 6
+R11
+r1
+!s85 0
+31
+!s108 1638491716.000000
+!s107 /homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FIR.v|
+!s90 -reportprogress|300|+acc|-L|mtiAvm|-L|mtiRnm|-L|mtiOvm|-L|mtiUvm|-L|mtiUPF|-L|infact|/homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FIR.v|
+!i113 0
+R15
+R3
 n@w4823_@f@i@r
 vW4823_FIR_tb
-!s110 1638260117
+!s10a 1638469732
+!s110 1638474112
 !i10b 1
-!s100 U^aG24bNgL[6V3<^h0dHk1
-IkYgY1_^]Ge[Ub2RTToB5Y0
-R2
+!s100 E0^[LokfAfPczXLCc:l1=0
+I3>PkLIJSIoK8b44U]RSX53
+R7
 R0
-w1638205862
+w1638469732
 8../verilog/FIR_tb.v
 F../verilog/FIR_tb.v
 L0 8
-R6
+R11
 r1
 !s85 0
 31
-!s108 1638260116.000000
+!s108 1638474112.000000
 !s107 ../verilog/FIR_tb.v|
 !s90 -reportprogress|300|+acc|-incr|../verilog/FIR_tb.v|
 !i113 0
-R10
-R11
+R15
+R3
 n@w4823_@f@i@r_tb
 vxchg
-R1
+R5
+R6
 !i10b 1
 !s100 GZMo@5BF=G8g<2YFmjN=91
 IP5CzkXTM;RMkUDT9`gAZI2
-R2
+R7
 R0
-R3
-R4
-R5
+R8
+R9
+R10
 L0 7
-R6
+R11
 r1
 !s85 0
 31
-R7
-R8
-R9
+R12
+R13
+R14
 !i113 0
-R10
-R11
+R15
+R3

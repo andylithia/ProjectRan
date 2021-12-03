@@ -7,7 +7,7 @@ Report : timing
         -sort_by slack
 Design : FPALU
 Version: O-2018.06-SP5-1
-Date   : Mon Nov 29 12:21:44 2021
+Date   : Mon Nov 29 23:02:59 2021
 ****************************************
 
 Operating Conditions: tt_1p2v_25c   Library: scx3_cmos8rf_lpvt_tt_1p2v_25c

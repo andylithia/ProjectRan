@@ -5,7 +5,7 @@
 `timescale 1ns/1fs
 module W4823_FIR(
 	input           rst_n,		//
-	input           clk_slow,		// Slow Clock 
+	input           clk_slow,	// Slow Clock (Unused, Internally Generated) 
 	input           clk,		// Fast Clock
 	input [15:0]    din,		// FP16 Input Data
 	input           valid_in,	// Input Ready
@@ -32,6 +32,9 @@ reg [15:0] ss_r;		// Control State Register
 reg [7:0]  cycle_cnt_r;
 reg        first_cycle_r;
 
+
+localparam SLEEP_LEN = 106;
+
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 wire cycle_load      = ss_r[0]; // 1
 wire cycle_mul_ndav  = ss_r[1]; // 4
@@ -55,7 +58,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
 		// Sleep Away the First Cycle
 		ss_r          <= 16'b0110_0000_0000_0000;
-		cycle_cnt_r   <= 8'd105;
+		cycle_cnt_r   <= SLEEP_LEN;
 		first_cycle_r <= 1'b1;
 	end else begin
 		case(ss_r)
@@ -69,7 +72,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		16'b0000_0000_0000_0110: begin	// Constant MUL16i
-			if(cycle_cnt_r==8'd58) begin
+			if(cycle_cnt_r==8'd57) begin
 				ss_r        <= 16'b0000_0000_0000_1100;
 				cycle_cnt_r <= 0;	
 			end else 
@@ -139,7 +142,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		16'b0110_0000_0000_0000: begin					// Sleep
-			if(cycle_cnt_r==8'd104) begin
+			if(cycle_cnt_r==SLEEP_LEN-1) begin
 				ss_r          <= 16'b1100_0000_0000_0000;
 				cycle_cnt_r   <= 0;	
 				first_cycle_r <= 0;
@@ -199,8 +202,8 @@ end
 always @(posedge cycle_dinlatch) begin
 	din_r <= din;
 end
-always @(posedge cycle_dinlatch or negedge dmem_clk) begin
-	if(cycle_dinlatch) begin
+always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
+	if(cycle_dinlatch_pulse_r) begin
 		// dmem_wr_r   <= 1;
 		cmem_addr_r <= 0;
 	end else begin
@@ -215,7 +218,8 @@ always @(negedge clk_fast) begin
 end
 
 wire alu_clk_en = ~cycle_sleep;
-wire alu_clk    =  clk_fast;
+wire alu_clk;
+// wire alu_clk    =  clk_fast;
 // To remove clock hazard in DMEM clock gating
 // Without this, the last cycle may end 1/2 clock period earlier
 reg cycle_mul_dly1_r;
@@ -237,7 +241,7 @@ always @(posedge alu_clk) begin
 end
 
 assign din_latch = cycle_dinlatch_pulse_r;
-assign dmem_clk_en = (cycle_load|cycle_mul_ndav|cycle_mul) & ~cycle_acc_thru_dly1_r;
+assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) & ~cycle_acc_thru_dly1_r;
 // Truncated, loops back automatically when dmem_addr_r >= 64;
 
 always @(negedge clk_fast or negedge rst_n) begin
@@ -251,7 +255,8 @@ end
 		
 `else
 	icgc u_cgc_cmem(.CK(clk_fast),.E(first_cycle_r|dmem_clk_en),.ECK(cmem_clk));
-	icgc u_cgc_alu(.CK(clk_fast),.E(alu_clk_en), .ECK(alu_clk));
+	// icgc u_cgc_alu(.CK(clk_fast),.E(alu_clk_en), .ECK(alu_clk));
+	assign alu_clk = clk_fast & alu_clk_en;
 	assign dmem_clk  = dmem_clk_en & clk_fast;	// DMEM Clock
 
 `endif /* USE_VENDOR_CGC */
@@ -501,7 +506,7 @@ assign dout_29i = alu_y_29i;
 	SP_DMEM u_dmem (
 		.Q   (dmem_q_fp16),
 		.CLK (clk_fast  ),
-		.CEN (~(dmem_clk_en|cycle_dinlatch)),
+		.CEN (~(dmem_clk_en)),
 		.WEN (~dmem_wr_r ),
 		.A   (dmem_addr_r),
 		.D   (din_r        )

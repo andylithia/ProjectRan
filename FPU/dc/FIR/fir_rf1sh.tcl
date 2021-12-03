@@ -1,9 +1,10 @@
 set top_level W4823_FIR
 source -verbose "../common_script/common.tcl"
-# analyze -format verilog -library work ../../verilog/misc.v
+analyze -format verilog -library work ../../verilog/misc.v
 #analyze -format verilog -library work ../../verilog/sp_sram.v
-# analyze -format verilog -library work ../../verilog/FPALU.v
-read_verilog {./FPALU.nl.v}
+analyze -format verilog -library work ../../verilog/icgc.v
+analyze -format verilog -library work ../../verilog/FPALU.v
+# read_verilog {./FPALU.nl.v}
 read_verilog {../../verilog/FIR.v}
 
 set search_path [list "." "/tools/synopsys/syn/O-2018.06-SP5-1/libraries/syn/" \
