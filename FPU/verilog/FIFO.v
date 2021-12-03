@@ -1,12 +1,13 @@
 // Asynchronous FIFO Design
 // Cross Clock Domain
 // Ref: http://www.sunburst-design.com/papers/CummingsSNUG2002SJ_FIFO1.pdf
+// JW: DSIZE is change from 8 to 16.
 
 `timescale 1ns/1ps
 
 // FIFO top-level module
 module fifo1    #(
-	parameter DSIZE = 8,
+	parameter DSIZE = 16,
 	parameter ASIZE = 4
 )(  output [DSIZE-1:0] rdata,
 	output wfull,
@@ -51,7 +52,7 @@ endmodule /* fifo1 */
 
 // FIFO Memory Buffer
 module fifomem #(
-	parameter DATASIZE = 8, // Memory data word width
+	parameter DATASIZE = 16, // Memory data word width
 	parameter ADDRSIZE = 4  // Number of mem address bits
  )(
 	output [DATASIZE-1:0] rdata,
