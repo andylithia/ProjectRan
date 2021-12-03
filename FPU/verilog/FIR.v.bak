@@ -5,7 +5,7 @@
 `timescale 1ns/1fs
 module W4823_FIR(
 	input           rst_n,		//
-	input           clk_slow,	// Slow Clock (Unused, Internally Generated) 
+	input           clk_slow,		// Slow Clock 
 	input           clk,		// Fast Clock
 	input [15:0]    din,		// FP16 Input Data
 	input           valid_in,	// Input Ready
@@ -18,9 +18,9 @@ module W4823_FIR(
 );
 
 // Remember to disable this before DC
-// `define DEBUGINFO
-// `define USE_VENDOR_CGC
+`define DEBUGINFO
 // `define USE_VENDOR_MEMORY
+`define USE_VENDOR_CGC
 `define USE_DUMMY_ALU
 // +----------------------------------+
 // |     Part 1. State Controller     |
@@ -28,141 +28,126 @@ module W4823_FIR(
 //
 wire       clk_fast   = clk;
 wire       clk_fast_n = ~clk_fast;
-reg [7:0]  ss_r;		// Control State Register
+reg [15:0] ss_r;		// Control State Register
 reg [7:0]  cycle_cnt_r;
 reg        first_cycle_r;
 
-localparam SLEEP_LEN = 106;
-
 // Note: cycle_* dictates the current state at the INPUT OF ALU
-//                           76543210
-`define S0_LOAD      8'b00000001
-`define S1_MUL_NDAV  8'b00000011
-`define S2_MUL       8'b00000010
-`define S3_ACC_THRU  8'b00000110
-`define S4_ACC       8'b00000100
-`define S5_ACC_P1    8'b00001100
-`define S6_ACC_CWR   8'b00001000
-`define S7_ACC_DWR   8'b00011000
-`define S8_ACC_EWR   8'b00010000
-`define S9_ACC_P21   8'b00110000
-`define SA_ACC_P22   8'b00100000
-`define SB_ACC_P31   8'b01100000
-`define SC_ACC_P32   8'b01000000
-`define SD_ACC_NORM  8'b11000000
-`define SE_SLEEP     8'b10000000
-`define SF_DINLATCH  8'b10000001
-
-wire cycle_load      = ss_r[0]&~ss_r[7]; // 1
-wire cycle_mul_ndav  = ss_r[0]& ss_r[1]; // 4
-wire cycle_mul       = ss_r[1]&~ss_r[0]; // 60
-wire cycle_acc_thru  = ss_r[1]& ss_r[2]; // 5
-wire cycle_acc       = ss_r[2]&~ss_r[1]; // 65
-wire cycle_acc_p1    = ss_r[2]& ss_r[1]; // 2, Delay a for 1 Cycle
-wire cycle_acc_cwr   = ss_r[3]&~ss_r[2]; // 1
-wire cycle_acc_dwr   = ss_r[3]& ss_r[2]; // 1
-wire cycle_acc_ewr	 = ss_r[4]&~ss_r[3]; // 1
-wire cycle_acc_p21   = ss_r[4]& ss_r[3]; // 2, 
-wire cycle_acc_p22   = ss_r[5]&~ss_r[4]; // 4
-wire cycle_acc_p31   = ss_r[5]& ss_r[4]; // 1
-wire cycle_acc_p32   = ss_r[6]&~ss_r[5]; // 4
-wire cycle_accnorm   = ss_r[6]& ss_r[5]; // 5
-wire cycle_sleep     = ss_r[7]&~ss_r[6]; // 100
-wire cycle_dinlatch  = ss_r[7]& ss_r[0]; // 1
+wire cycle_load      = ss_r[0]; // 1
+wire cycle_mul_ndav  = ss_r[1]; // 4
+wire cycle_mul       = ss_r[2];	// 60
+wire cycle_acc_thru  = ss_r[3];	// 5
+wire cycle_acc       = ss_r[4];	// 65
+wire cycle_acc_p1    = ss_r[5]; // 2, Delay a for 1 Cycle
+wire cycle_acc_cwr   = ss_r[6]; // 1
+wire cycle_acc_dwr   = ss_r[7];	// 1
+wire cycle_acc_ewr	 = ss_r[8];	// 1
+wire cycle_acc_p21   = ss_r[9]; // 2, 
+wire cycle_acc_p22   = ss_r[10]; // 4
+wire cycle_acc_p31   = ss_r[11]; // 1
+wire cycle_acc_p32   = ss_r[12]; // 4
+wire cycle_accnorm   = ss_r[13]; // 5
+wire cycle_sleep     = ss_r[14]; // 100
+wire cycle_dinlatch  = ss_r[15]; // 1
 // The following coding is to ensure glitch-free clock gating
 // To get ALU input mux, xor the nearby two states
 always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
 		// Sleep Away the First Cycle
-		ss_r          <= `SE_SLEEP;
-		cycle_cnt_r   <= SLEEP_LEN;
+		ss_r          <= 16'b0110_0000_0000_0000;
+		cycle_cnt_r   <= 8'd105;
 		first_cycle_r <= 1'b1;
 	end else begin
 		case(ss_r)
-		`S0_LOAD:			// DMEM WR & MUL16i First Cycle
-			ss_r <= `S1_MUL_NDAV;
-		`S1_MUL_NDAV: begin	// MUL16i First 4 Cycles
+		16'b1000_0000_0000_0001:			// DMEM WR & MUL16i First Cycle
+			ss_r <= 16'b0000_0000_0000_0011;
+		16'b0000_0000_0000_0011: begin	// MUL16i First 4 Cycles
 			if(cycle_cnt_r==8'd3) begin	
-				ss_r        <= `S2_MUL;
+				ss_r        <= 16'b0000_0000_0000_0110;
 				cycle_cnt_r <= 0;	
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`S2_MUL: begin	// Constant MUL16i
-			if(cycle_cnt_r==8'd57) begin
-				ss_r        <= `S3_ACC_THRU;
+		16'b0000_0000_0000_0110: begin	// Constant MUL16i
+			if(cycle_cnt_r==8'd58) begin
+				ss_r        <= 16'b0000_0000_0000_1100;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`S3_ACC_THRU: begin	// Acc Write Thru
+		16'b0000_0000_0000_1100: begin	// Acc Write Thru
 			if(cycle_cnt_r==8'd4) begin
-				ss_r        <= `S4_ACC;
+				ss_r        <= 16'b0000_0000_0001_1000;
 				cycle_cnt_r <= 0;
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`S4_ACC: begin	// Penta ACC
+		16'b0000_0000_0001_1000: begin	// Penta ACC
 			if(cycle_cnt_r==8'd58) begin
-				ss_r        <= `S5_ACC_P1;
+				ss_r        <= 16'b0000_0000_0011_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`S5_ACC_P1: begin	// Acc, A+B
+		16'b0000_0000_0011_0000: begin	// Acc, A+B
 			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
-				ss_r        <= `S6_ACC_CWR;
+				ss_r        <= 16'b0000_0000_0110_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`S6_ACC_CWR: begin	// Acc, CWR, A+B in S2
+		16'b0000_0000_0110_0000: begin	// Acc, CWR, A+B in S2
 			if(cycle_cnt_r==8'd1) begin
-				ss_r        <= `S7_ACC_DWR;
+				ss_r        <= 16'b0000_0000_1100_0000;
 				cycle_cnt_r <= 0;
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 	end
-		`S7_ACC_DWR: ss_r   <= `S8_ACC_EWR;	// Acc, DWR, A+B in S3
-		`S8_ACC_EWR: ss_r   <= `S9_ACC_P21; // Acc, EWR, A+B in S4
-		`S9_ACC_P21: begin	// Acc, P21, A+B in S5, Recall C
+		16'b0000_0000_1100_0000: 	// Acc, DWR, A+B in S3
+				ss_r        <= 16'b0000_0001_1000_0000;
+		16'b0000_0001_1000_0000:	// Acc, EWR, A+B in S4
+				ss_r        <= 16'b0000_0011_0000_0000;
+		16'b0000_0011_0000_0000: begin	// Acc, P21, A+B in S5, Recall C
 			if(cycle_cnt_r==8'd1) begin	// Accumulation ADD29i
-				ss_r        <= `SA_ACC_P22;
+				ss_r        <= 16'b0000_0110_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`SA_ACC_P22: begin	// Acc, P22, Calculate A+B+C
+		16'b0000_0110_0000_0000: begin	// Acc, P22, Calculate A+B+C
 			if(cycle_cnt_r==8'd3) begin	// Accumulation ADD29i
-				ss_r        <= `SB_ACC_P31;
+				ss_r        <= 16'b0000_1100_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`SB_ACC_P31: ss_r   <= `SC_ACC_P32; // Acc, P31, A+B+C Ready, Recall D
-		`SC_ACC_P32: begin	// Acc, P32, Calculate A+B+C+D
+		16'b0000_1100_0000_0000: begin	// Acc, P31, A+B+C Ready, Recall D
+				ss_r        <= 16'b0001_1000_0000_0000;
+		end
+		16'b0001_1000_0000_0000: begin	// Acc, P32, Calculate A+B+C+D
 			if(cycle_cnt_r==8'd3) begin	// Accumulation ADD29i
-				ss_r        <= `SD_ACC_NORM;
+				ss_r        <= 16'b0011_0000_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`SD_ACC_NORM: begin	// Acc Normalize, A+B+C+D+E, 5 Cycles
+		16'b0011_0000_0000_0000: begin	// Acc Normalize, A+B+C+D+E, 5 Cycles
 			if(cycle_cnt_r==8'd4) begin
-				ss_r        <= `SE_SLEEP;
+				ss_r        <= 16'b0110_0000_0000_0000;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`SE_SLEEP: begin					// Sleep
-			if(cycle_cnt_r==SLEEP_LEN-1) begin
-				ss_r          <= `SF_DINLATCH;
+		16'b0110_0000_0000_0000: begin					// Sleep
+			if(cycle_cnt_r==8'd104) begin
+				ss_r          <= 16'b1100_0000_0000_0000;
 				cycle_cnt_r   <= 0;	
 				first_cycle_r <= 0;
 			end else 
-				cycle_cnt_r   <= cycle_cnt_r + 1'b1;
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`SF_DINLATCH: ss_r    <= `S0_LOAD; // Din Latch Cycle
+		16'b1100_0000_0000_0000:			// Din Latch Cycle
+			ss_r <= 16'b1000_0000_0000_0001;
 		endcase
 	end
 end
@@ -181,24 +166,22 @@ end
 
 // CMEM can be written-to in the first 256-clk cycle
 // from the outside
-wire        cmem_wr = first_cycle_r&clk_slow;	// Internal
+wire        cmem_wr = first_cycle_r;	// Internal
 wire        cmem_clk;					// Muxed
 wire [5:0]  cmem_addr;					// Muxed
 reg  [5:0]  cmem_addr_r;				// Internal
 wire [16:0] cmem_din_FP16i = cin;		// External 
 
 reg         dmem_wr_r;
-wire         dmem_clk;
-wire         dmem_clk_en;
-// wire         dmem_wr_r = cycle_dinlatch&~cycle_load;
-reg [5:0]	 dmem_addr_r;
+reg [5:0]	dmem_addr_r;
 // DMEM Clock has 1 extra clap prior to ALU Clock, to make it point to the next location of WR operation
 // wire din_latch = cycle_load &~cycle_load_dly_r; // Circluar Buffer Input Clock
 wire din_latch;
 reg [15:0] din_r;
 
+wire dmem_clk; 
 assign cmem_addr = (first_cycle_r) ? caddr : cmem_addr_r;
-// assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
+assign cmem_clk  = (first_cycle_r) ? cload : dmem_clk;
 wire dmem_cmem_rst = dmem_wr_r&~dmem_clk;
 reg cycle_dinlatch_pulse_r;
 // Modded because DC complains about polarity
@@ -206,32 +189,22 @@ always @(posedge cycle_dinlatch or negedge clk_fast) begin
 	if(~clk_fast) cycle_dinlatch_pulse_r <= 0;
 	else          cycle_dinlatch_pulse_r <= 1;
 end
-/*
+
 always @(negedge cycle_dinlatch_pulse_r) begin
 	din_r <= din;
 end
-*/
-always @(posedge cycle_dinlatch) begin
-	din_r <= din;
-end
+
 always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
 	if(cycle_dinlatch_pulse_r) begin
-		// dmem_wr_r   <= 1;
+		dmem_wr_r   <= 1;
 		cmem_addr_r <= 0;
 	end else begin
-		// dmem_wr_r   <= 0;
+		dmem_wr_r   <= 0;
 		cmem_addr_r <= cmem_addr_r + 1;
 	end
 end
 
-always @(negedge clk_fast) begin
-	if(cycle_dinlatch&&dmem_wr_r==0) dmem_wr_r <= 1;
-	else                             dmem_wr_r <= 0;
-end
-
-wire alu_clk_en = ~cycle_sleep;
-wire alu_clk;
-// wire alu_clk    =  clk_fast;
+wire alu_clk = ~cycle_sleep & clk_fast;
 // To remove clock hazard in DMEM clock gating
 // Without this, the last cycle may end 1/2 clock period earlier
 reg cycle_mul_dly1_r;
@@ -250,28 +223,17 @@ reg cycle_acc_thru_dly2_r;
 always @(posedge alu_clk) begin
 	if(cycle_acc_thru) cycle_acc_thru_dly2_r <= 1;
 	else               cycle_acc_thru_dly2_r <= 0;
+
 end
 
 assign din_latch = cycle_dinlatch_pulse_r;
-assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) & ~cycle_acc_thru_dly1_r;
+assign dmem_clk  = (cycle_load|cycle_mul_ndav|cycle_mul) &~cycle_acc_thru_dly1_r & clk_fast;	// DMEM Clock
+
 // Truncated, loops back automatically when dmem_addr_r >= 64;
-
-always @(negedge clk_fast or negedge rst_n) begin
-	if(~rst_n)	dmem_addr_r <= 0;
-	else if(dmem_clk_en) dmem_addr_r <= dmem_addr_r + 1;
+always @(negedge dmem_clk or negedge rst_n) begin
+	if(~rst_n) dmem_addr_r <= 0;
+	else       dmem_addr_r <= dmem_addr_r + 1;
 end
-
-// Clock Gating
-//
-`ifdef USE_VENDOR_CGC
-		
-`else
-	icgc u_cgc_cmem(.CK(clk_fast),.E(first_cycle_r|dmem_clk_en),.ECK(cmem_clk));
-	// icgc u_cgc_alu(.CK(clk_fast),.E(alu_clk_en), .ECK(alu_clk));
-	assign alu_clk = clk_fast & alu_clk_en;
-	assign dmem_clk  = dmem_clk_en & clk_fast;	// DMEM Clock
-
-`endif /* USE_VENDOR_CGC */
 
 // +--------------------------------------+
 // |     Part 3. REGFile Data Control     |
@@ -349,6 +311,7 @@ always @(posedge alu_clk) begin
 end
 
 
+
 // ALL FP16 Data Connectors are RIGHT ALIGNED
 // MUX of input A
 assign alumux_din_fp16  = {din_r[15], 1'bx, din_r[14:10], {12{1'bx}}, din_r[9:0]}; 		// FP16
@@ -366,43 +329,47 @@ always @* begin
 	// Note: all conditions are if... if... rather than if... else if...
 	//       because these conditions are mutally exclusive
 	if(cycle_dinlatch) begin					// MUL16i First Cycle
-		alu_a_29i = alumux_din_fp16;	// latched
-		alu_b_29i = alumux_cmem_fp16i;	// 
+		alu_a_29i = alumux_din_fp16;
+		alu_b_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 0;
 		`endif /* DEBUGINFO */
 	end
-	if(cycle_mul_ndav|cycle_mul) begin
-		alu_a_29i = alumux_dmem_fp16;	// Historic Data
-		alu_b_29i = alumux_cmem_fp16i;	// 
+
+	if((cycle_mul_ndav|cycle_mul)&~cycle_acc_thru) begin
+		alu_a_29i = alumux_dmem_fp16;
+		alu_b_29i = alumux_cmem_fp16i;
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 1;
 		`endif /* DEBUGINFO */
 	end         
+	
 	// ADD29i First 5 Cycles Feed-Thru
-	if(cycle_acc_thru) begin		
-		alu_a_29i = alumux_self_fp29i;	// Loop Back	
-		alu_b_29i = 29'b0;
+	if(cycle_acc_thru&~cycle_acc) begin		
+		alu_a_29i = alumux_self_fp29i;	
+		alu_b_29i = 30'b0;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 2;
 		`endif /* DEBUGINFO */
 	end 
+
 	// Penta Summation
-	if(cycle_acc) begin
-		alu_a_29i = alumux_self_fp29i;	// Loop Back
-		alu_b_29i = alumux_regf_fp29i;	//
+	if(cycle_acc&~cycle_acc_p1) begin
+		alu_a_29i = alumux_self_fp29i;
+		alu_b_29i = alumux_regf_fp29i;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 3;
 		`endif /* DEBUGINFO */
 	end 
+
 	// A+B, the first cycle is discarded
-	if(cycle_acc_p1) begin
+	if(cycle_acc_p1 & ~cycle_acc_cwr) begin
 		alu_a_29i = alumux_self_fp29i;
-		alu_b_29i = {29{1'b0}}; //alumux_regac_fp29i_r;
+		alu_b_29i = {29{1'b0}};//alumux_regac_fp29i_r;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 4;
@@ -410,7 +377,7 @@ always @* begin
 	end
 
 	// Wait for A+B
-	if((cycle_acc_cwr|cycle_acc_dwr|cycle_acc_ewr)) begin
+	if((cycle_acc_cwr|cycle_acc_dwr|cycle_acc_ewr)&~cycle_acc_p21) begin
 		alu_a_29i = alumux_dly;
 		alu_b_29i = alu_a_29i_r;
 		alu_opcode = 2'bxx;
@@ -420,7 +387,7 @@ always @* begin
 	end
 
 	// Start A+B+C
-	if(cycle_acc_p21) begin
+	if(cycle_acc_p21&~cycle_acc_p22) begin
 		alu_a_29i = alumux_self_fp29i;
 		alu_b_29i = alumux_dly1;
 		alu_opcode = 2'b11;
@@ -430,7 +397,7 @@ always @* begin
 	end
 
 	// Wait for A+B+C
-	if(cycle_acc_p22) begin
+	if(cycle_acc_p22&~cycle_acc_p31) begin
 		alu_a_29i = {30{1'bx}};
 		alu_b_29i = {30{1'bx}};
 		alu_opcode = 2'bxx;
@@ -440,7 +407,7 @@ always @* begin
 	end
 	
 	// Start A+B+C+D
-	if(cycle_acc_p31) begin
+	if(cycle_acc_p31&~cycle_acc_p32) begin
 		alu_a_29i = alumux_self_fp29i;
 		alu_b_29i = alumux_dly2;
 		alu_opcode = 2'b11;
@@ -450,7 +417,7 @@ always @* begin
 	end
 
 	// Wait for A+B+C+D
-	if(cycle_acc_p32) begin
+	if(cycle_acc_p32&~cycle_accnorm) begin
 		alu_a_29i = {30{1'bx}};
 		alu_b_29i = {30{1'bx}};
 		alu_opcode = 2'bxx;
@@ -460,10 +427,10 @@ always @* begin
 	end
 
 	// Start A+B+C+D+E
-	if(cycle_accnorm) begin	// ADD29NORM Final Cycle
+	if(cycle_accnorm&~cycle_sleep) begin	// ADD29NORM Final Cycle
 		alu_a_29i = alumux_self_fp29i;		// Last ACC input
 		alu_b_29i = alumux_dly3;
-		alu_opcode = 2'b00;					// ADD29i with Normalization	
+		alu_opcode = 2'b00;		// ADD29i with Normalization	
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 10;
 		`endif /* DEBUGINFO */
@@ -512,21 +479,20 @@ assign dout_29i = alu_y_29i;
 	// DMEM: 16b x 64w
 	SP_DMEM u_dmem (
 		.Q   (dmem_q_fp16),
-		.CLK (clk_fast  ),
-		.CEN (~(dmem_clk_en)),
+		.CLK (dmem_clk^~dmem_wr_r   ),
+		.CEN (~rst_n     ),
 		.WEN (~dmem_wr_r ),
 		.A   (dmem_addr_r),
 		.D   (din_r        )
 	);
-
 
 	// CMEM: 16b x 64w
 	wire [15:0] cmem_q_fp16;
 	wire [15:0] cmem_din_fp16;
 	SP_CMEM u_cmem (
 		.Q   (cmem_q_fp16),
-		.CLK (clk_fast^first_cycle_r),
-		.CEN (~(first_cycle_r|dmem_clk_en)),
+		.CLK (cmem_clk   ),
+		.CEN (~rst_n     ),
 		.WEN (~cmem_wr   ),
 		.A   (cmem_addr  ),
 		.D   (cmem_din_fp16)
