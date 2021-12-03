@@ -32,7 +32,6 @@ reg [7:0]  ss_r;		// Control State Register
 reg [7:0]  cycle_cnt_r;
 reg        first_cycle_r;
 
-
 localparam SLEEP_LEN = 106;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
@@ -350,7 +349,6 @@ always @(posedge alu_clk) begin
 end
 
 
-
 // ALL FP16 Data Connectors are RIGHT ALIGNED
 // MUX of input A
 assign alumux_din_fp16  = {din_r[15], 1'bx, din_r[14:10], {12{1'bx}}, din_r[9:0]}; 		// FP16
@@ -368,47 +366,43 @@ always @* begin
 	// Note: all conditions are if... if... rather than if... else if...
 	//       because these conditions are mutally exclusive
 	if(cycle_dinlatch) begin					// MUL16i First Cycle
-		alu_a_29i = alumux_din_fp16;
-		alu_b_29i = alumux_cmem_fp16i;
+		alu_a_29i = alumux_din_fp16;	// latched
+		alu_b_29i = alumux_cmem_fp16i;	// 
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 0;
 		`endif /* DEBUGINFO */
 	end
-
-	if((cycle_mul_ndav|cycle_mul)&~cycle_acc_thru) begin
-		alu_a_29i = alumux_dmem_fp16;
-		alu_b_29i = alumux_cmem_fp16i;
+	if(cycle_mul_ndav|cycle_mul) begin
+		alu_a_29i = alumux_dmem_fp16;	// Historic Data
+		alu_b_29i = alumux_cmem_fp16i;	// 
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 1;
 		`endif /* DEBUGINFO */
 	end         
-	
 	// ADD29i First 5 Cycles Feed-Thru
-	if(cycle_acc_thru&~cycle_acc) begin		
-		alu_a_29i = alumux_self_fp29i;	
-		alu_b_29i = 30'b0;
+	if(cycle_acc_thru) begin		
+		alu_a_29i = alumux_self_fp29i;	// Loop Back	
+		alu_b_29i = 29'b0;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 2;
 		`endif /* DEBUGINFO */
 	end 
-
 	// Penta Summation
-	if(cycle_acc&~cycle_acc_p1) begin
-		alu_a_29i = alumux_self_fp29i;
-		alu_b_29i = alumux_regf_fp29i;
+	if(cycle_acc) begin
+		alu_a_29i = alumux_self_fp29i;	// Loop Back
+		alu_b_29i = alumux_regf_fp29i;	//
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 3;
 		`endif /* DEBUGINFO */
 	end 
-
 	// A+B, the first cycle is discarded
-	if(cycle_acc_p1 & ~cycle_acc_cwr) begin
+	if(cycle_acc_p1) begin
 		alu_a_29i = alumux_self_fp29i;
-		alu_b_29i = {29{1'b0}};//alumux_regac_fp29i_r;
+		alu_b_29i = {29{1'b0}}; //alumux_regac_fp29i_r;
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 4;
@@ -416,7 +410,7 @@ always @* begin
 	end
 
 	// Wait for A+B
-	if((cycle_acc_cwr|cycle_acc_dwr|cycle_acc_ewr)&~cycle_acc_p21) begin
+	if((cycle_acc_cwr|cycle_acc_dwr|cycle_acc_ewr)) begin
 		alu_a_29i = alumux_dly;
 		alu_b_29i = alu_a_29i_r;
 		alu_opcode = 2'bxx;
@@ -426,7 +420,7 @@ always @* begin
 	end
 
 	// Start A+B+C
-	if(cycle_acc_p21&~cycle_acc_p22) begin
+	if(cycle_acc_p21) begin
 		alu_a_29i = alumux_self_fp29i;
 		alu_b_29i = alumux_dly1;
 		alu_opcode = 2'b11;
@@ -436,7 +430,7 @@ always @* begin
 	end
 
 	// Wait for A+B+C
-	if(cycle_acc_p22&~cycle_acc_p31) begin
+	if(cycle_acc_p22) begin
 		alu_a_29i = {30{1'bx}};
 		alu_b_29i = {30{1'bx}};
 		alu_opcode = 2'bxx;
@@ -446,7 +440,7 @@ always @* begin
 	end
 	
 	// Start A+B+C+D
-	if(cycle_acc_p31&~cycle_acc_p32) begin
+	if(cycle_acc_p31) begin
 		alu_a_29i = alumux_self_fp29i;
 		alu_b_29i = alumux_dly2;
 		alu_opcode = 2'b11;
@@ -456,7 +450,7 @@ always @* begin
 	end
 
 	// Wait for A+B+C+D
-	if(cycle_acc_p32&~cycle_accnorm) begin
+	if(cycle_acc_p32) begin
 		alu_a_29i = {30{1'bx}};
 		alu_b_29i = {30{1'bx}};
 		alu_opcode = 2'bxx;
@@ -466,10 +460,10 @@ always @* begin
 	end
 
 	// Start A+B+C+D+E
-	if(cycle_accnorm&~cycle_sleep) begin	// ADD29NORM Final Cycle
+	if(cycle_accnorm) begin	// ADD29NORM Final Cycle
 		alu_a_29i = alumux_self_fp29i;		// Last ACC input
 		alu_b_29i = alumux_dly3;
-		alu_opcode = 2'b00;		// ADD29i with Normalization	
+		alu_opcode = 2'b00;					// ADD29i with Normalization	
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 10;
 		`endif /* DEBUGINFO */
