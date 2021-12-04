@@ -14,11 +14,11 @@ wire      clk_slow = clk_div[7];    // 10kHz
 reg       first_cycle_r;
 
 reg [5:0]  caddr;
-reg [16:0] cin;
+wire [15:0] cin;
 wire       cload;
 integer    load_cmem_cnt_r;
 
-reg [15:0] din;
+wire [15:0] din;
 
 
 always @(posedge clk_fast or negedge rst_n) begin
@@ -31,8 +31,8 @@ initial begin
     clk_fast = 0;
 	first_cycle_r = 1;
 	caddr = 0;
+	daddr = 0;
 	load_cmem_cnt_r = 0;
-	din = 0;
 
     #100 rst_n = 0;
     #100 rst_n = 1;
@@ -52,15 +52,28 @@ always #195.3125 clk_fast = ~clk_fast;
 assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
 always @(posedge clk_fast) begin
 	if(load_cmem_cnt_r<65) begin
-		caddr <= caddr + 1;
-		cin <= {$random};
-		load_cmem_cnt_r = load_cmem_cnt_r + 1;
+		if(cin[14:10]==0) $display("CIN DENORM @ 0x%x\n", caddr);
+		caddr           <= caddr + 1;
+		load_cmem_cnt_r <= load_cmem_cnt_r + 1;
+		// Assuming 16bit FP16
 	end
 end
 
+data_cmem_fp16 u_cmem_src(
+	.a(caddr),
+	.q(cin)
+);
+
+data_dmem_fp16 u_dmem_src(
+	.a(daddr),
+	.q(din)
+);
 // Din Writer
-always @(posedge clk_slow) begin
-	din <= din + 1;
+reg [8:0] daddr; 
+always @(posedge clk_slow or negedge rst_n) begin
+	if(din[14:10]==0) $display("DIN DENORM @ 0x%x\n",daddr);
+	if(~rst_n) daddr <= 0;
+	else       daddr <= daddr + 1;
 end
 
 W4823_FIR dut (

@@ -62,13 +62,18 @@ wire [ML_EXPSIZE:0]     din_ML_expb = {1'b0,din_uni_b_exp[ML_EXPSIZE-1:0]};
 reg [ML_MANSIZE-1:0]    din_ML_mana;
 reg [ML_MANSIZE-1:0]    din_ML_manb;
 // Dealing with denorm number
-wire s1_ml_ea_is_denorm = (din_ML_expa == ML_EXPBIAS);
+// wire s1_ml_ea_is_denorm = (din_ML_expa == ML_EXPBIAS);
+wire s1_ml_ea_is_denorm = (|din_ML_expa) == 1'b0;
+wire s2_ml_eb_is_denorm = (|din_ML_expb) == 1'b0;
 always @* begin
-	if(s1_ml_ea_is_denorm)
-		din_ML_mana = {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0};
-	else 
-		din_ML_mana = {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
-	din_ML_manb = din_uni_b_man_dn[ML_MANSIZE-1:0];	// Always Denorm
+	// din_ML_manx is 11 bit denormalized mantissa
+	// din_uni_x_man_dn is 10 bit normalized mantissa
+	if(s1_ml_ea_is_denorm) din_ML_mana = {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0};
+	else                   din_ML_mana = {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
+	
+	if(s1_ml_eb_is_denorm) din_ML_manb = {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0};
+	else                   din_ML_manb = {1'b1, din_uni_b_man_dn[ML_MANSIZE-2:0]};
+	// din_ML_manb = din_uni_b_man_dn[ML_MANSIZE-1:0];	// Always Denorm
 end
 
 `ifdef DEBUGINFO

@@ -1,3 +1,6 @@
+
+`timescale 1ns/1fs
+
 module data_cmem_i16(
 	input [5:0]         a,
 	output reg [15:0]   q   

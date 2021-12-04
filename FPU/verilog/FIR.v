@@ -260,7 +260,7 @@ always @(posedge alu_clk) begin
 end
 
 assign din_latch = cycle_dinlatch_pulse_r;
-assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul|cycle_mul_dly1_r);
+assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul);
 // Truncated, loops back automatically when dmem_addr_r >= 64;
 
 always @(negedge clk_fast or negedge rst_n) begin
@@ -493,35 +493,39 @@ always @* begin
 end
 
 // ALU instance
-`ifdef USE_DUMMY_ALU
-	FPALU_dummy u_fpalu(
-		.clk               (alu_clk   ),
-		.opcode            (alu_opcode_r),
-		.din_uni_a_sgn     (alu_a_s   ),
-		.din_uni_a_exp     (alu_a_e   ),
-		.din_uni_a_man_dn  (alu_a_m   ),
-		.din_uni_b_sgn     (alu_b_s   ),
-		.din_uni_b_exp     (alu_b_e   ),
-		.din_uni_b_man_dn  (alu_b_m   ),
-		.dout_uni_y_sgn    (alu_y_s   ),
-		.dout_uni_y_exp    (alu_y_e   ),
-		.dout_uni_y_man_dn (alu_y_m   )
-	);
+`ifdef USE_FP16
+	`ifdef USE_DUMMY_ALU
+		FPALU_dummy u_fpalu(
+			.clk               (alu_clk   ),
+			.opcode            (alu_opcode_r),
+			.din_uni_a_sgn     (alu_a_s   ),
+			.din_uni_a_exp     (alu_a_e   ),
+			.din_uni_a_man_dn  (alu_a_m   ),
+			.din_uni_b_sgn     (alu_b_s   ),
+			.din_uni_b_exp     (alu_b_e   ),
+			.din_uni_b_man_dn  (alu_b_m   ),
+			.dout_uni_y_sgn    (alu_y_s   ),
+			.dout_uni_y_exp    (alu_y_e   ),
+			.dout_uni_y_man_dn (alu_y_m   )
+		);
+	`else
+		FPALU u_fpalu(
+			.clk               (alu_clk   ),
+			.opcode            (alu_opcode_r),
+			.din_uni_a_sgn     (alu_a_s   ),
+			.din_uni_a_exp     (alu_a_e   ),
+			.din_uni_a_man_dn  (alu_a_m   ),
+			.din_uni_b_sgn     (alu_b_s   ),
+			.din_uni_b_exp     (alu_b_e   ),
+			.din_uni_b_man_dn  (alu_b_m   ),
+			.dout_uni_y_sgn    (alu_y_s   ),
+			.dout_uni_y_exp    (alu_y_e   ),
+			.dout_uni_y_man_dn (alu_y_m   )
+		);
+	`endif /* USE_DUMMY_ALU */
 `else
-	FPALU u_fpalu(
-		.clk               (alu_clk   ),
-		.opcode            (alu_opcode_r),
-		.din_uni_a_sgn     (alu_a_s   ),
-		.din_uni_a_exp     (alu_a_e   ),
-		.din_uni_a_man_dn  (alu_a_m   ),
-		.din_uni_b_sgn     (alu_b_s   ),
-		.din_uni_b_exp     (alu_b_e   ),
-		.din_uni_b_man_dn  (alu_b_m   ),
-		.dout_uni_y_sgn    (alu_y_s   ),
-		.dout_uni_y_exp    (alu_y_e   ),
-		.dout_uni_y_man_dn (alu_y_m   )
-	);
-`endif /* USE_DUMMY_ALU */
+	// TBD
+`endif /* USE_FP16 */
 assign dout     = alu_y_29i;
 assign dout_29i = alu_y_29i;
 
@@ -553,15 +557,19 @@ assign dout_29i = alu_y_29i;
 		.A   (cmem_addr  ),
 		.D   (cmem_din_fp16)
 	);
+
+
 	assign cmem_q_fp16i[16]    = cmem_q_fp16[15];
 	assign cmem_q_fp16i[15:12] = cmem_q_fp16[14:11];
 	assign cmem_q_fp16i[11]    = 1'b1;
 	assign cmem_q_fp16i[10:0]  = cmem_q_fp16[10:0];
-
-	assign cmem_din_fp16[15]    = cmem_din_FP16i[16];
-	assign cmem_din_fp16[14:11] = cmem_din_FP16i[15:12];
-	assign cmem_din_fp16[10:0]  = cmem_din_FP16i[10:0];
-
+	`ifdef USE_FP16
+		assign cmem_din_fp16[15]    = cmem_din_FP16i[16];
+		assign cmem_din_fp16[14:11] = cmem_din_FP16i[15:12];
+		assign cmem_din_fp16[10:0]  = cmem_din_FP16i[10:0];
+	`else
+		assign cmem_din_fp16 = cmem_din_FP16i;
+	`endif /* USE_FP16 */
  	// REGFile: 29b x 59w
 	SP_REGF u_regf (
 		.Q   (regf_q_fp29i ),
@@ -611,8 +619,6 @@ sp_sram #(
 );
 
 `endif /* USE_VENDOR_MEMORY */
-
-
 
 `ifdef DEBUGINFO
 integer dbg_alu_clk_cnt;

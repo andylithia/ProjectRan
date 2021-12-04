@@ -1,19 +1,22 @@
+
+`timescale 1ns/1fs
+
 module data_cmem_fp16(
 	input [5:0]         a,
 	output reg [15:0]   q   
 );
 always @* begin
-	case(addr) 
-	6'd00: q = 16'h82DC;
-	6'd01: q = 16'h8114;
-	6'd02: q = 16'h0133;
-	6'd03: q = 16'h05F3;
-	6'd04: q = 16'h07BE;
-	6'd05: q = 16'h8144;
-	6'd06: q = 16'h8D16;
-	6'd07: q = 16'h8FEA;
-	6'd08: q = 16'h891D;
-	6'd09: q = 16'h11B8;
+	case(a) 
+	6'd0: q = 16'h82DC;
+	6'd1: q = 16'h8114;
+	6'd2: q = 16'h0133;
+	6'd3: q = 16'h05F3;
+	6'd4: q = 16'h07BE;
+	6'd5: q = 16'h8144;
+	6'd6: q = 16'h8D16;
+	6'd7: q = 16'h8FEA;
+	6'd8: q = 16'h891D;
+	6'd9: q = 16'h11B8;
 	6'd10: q = 16'h15BE;
 	6'd11: q = 16'h138A;
 	6'd12: q = 16'h9448;
