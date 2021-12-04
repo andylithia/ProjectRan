@@ -2,7 +2,6 @@ module data_cmem_fp16(
 	input [5:0]         a,
 	output reg [15:0]   q   
 );
-
 always @* begin
 	case(addr) 
 	6'd00: q = 16'h82DC;

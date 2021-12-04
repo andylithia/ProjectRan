@@ -3,7 +3,7 @@ module data_cmem_i16(
 	output reg [15:0]   q   
 );
 always @* begin
-	case(addr) 
+	case(a) 
 	6'd0: q = 16'hFFFF;
 	6'd1: q = 16'hFFFF;
 	6'd2: q = 16'h0001;

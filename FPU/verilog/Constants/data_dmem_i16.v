@@ -3,7 +3,7 @@ module data_dmem_fp16(
 	output reg [15:0]   q   
 );
 always @* begin
-	case(addr)
+	case(a)
 	9'd00: q = 16'h7FFF;
 	9'd01: q = 16'h0C88;
 	9'd02: q = 16'h1897;

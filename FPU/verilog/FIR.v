@@ -20,7 +20,7 @@ module W4823_FIR(
 // Remember to disable this before DC
 // `define DEBUGINFO
 // `define USE_VENDOR_CGC
-// `define USE_VENDOR_MEMORY
+`define USE_VENDOR_MEMORY
 `define USE_DUMMY_ALU
 // +----------------------------------+
 // |     Part 1. State Controller     |
@@ -32,7 +32,7 @@ reg [7:0]  ss_r;		// Control State Register
 reg [7:0]  cycle_cnt_r;
 reg        first_cycle_r;
 
-localparam SLEEP_LEN = 106;
+localparam SLEEP_LEN = 105;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 //                           76543210
@@ -53,21 +53,21 @@ localparam SLEEP_LEN = 106;
 `define SE_SLEEP     8'b10000000
 `define SF_DINLATCH  8'b10000001
 
-wire cycle_load      = ss_r[0]&~ss_r[7]; // 1
+wire cycle_load      = ~ss_r[1]&ss_r[0]&~ss_r[7]; // 1
 wire cycle_mul_ndav  = ss_r[0]& ss_r[1]; // 4
-wire cycle_mul       = ss_r[1]&~ss_r[0]; // 60
+wire cycle_mul       = ~ss_r[2]&ss_r[1]&~ss_r[0]; // 60
 wire cycle_acc_thru  = ss_r[1]& ss_r[2]; // 5
-wire cycle_acc       = ss_r[2]&~ss_r[1]; // 65
+wire cycle_acc       = ~ss_r[3]&ss_r[2]&~ss_r[1]; // 65
 wire cycle_acc_p1    = ss_r[2]& ss_r[1]; // 2, Delay a for 1 Cycle
-wire cycle_acc_cwr   = ss_r[3]&~ss_r[2]; // 1
+wire cycle_acc_cwr   = ~ss_r[4]&ss_r[3]&~ss_r[2]; // 1
 wire cycle_acc_dwr   = ss_r[3]& ss_r[2]; // 1
-wire cycle_acc_ewr	 = ss_r[4]&~ss_r[3]; // 1
+wire cycle_acc_ewr	 = ~ss_r[5]&ss_r[4]&~ss_r[3]; // 1
 wire cycle_acc_p21   = ss_r[4]& ss_r[3]; // 2, 
-wire cycle_acc_p22   = ss_r[5]&~ss_r[4]; // 4
+wire cycle_acc_p22   = ~ss_r[6]&ss_r[5]&~ss_r[4]; // 4
 wire cycle_acc_p31   = ss_r[5]& ss_r[4]; // 1
-wire cycle_acc_p32   = ss_r[6]&~ss_r[5]; // 4
+wire cycle_acc_p32   = ~ss_r[7]&ss_r[6]&~ss_r[5]; // 4
 wire cycle_accnorm   = ss_r[6]& ss_r[5]; // 5
-wire cycle_sleep     = ss_r[7]&~ss_r[6]; // 100
+wire cycle_sleep     = ~ss_r[0]&ss_r[7]&~ss_r[6]; // 100
 wire cycle_dinlatch  = ss_r[7]& ss_r[0]; // 1
 // The following coding is to ensure glitch-free clock gating
 // To get ALU input mux, xor the nearby two states
@@ -89,7 +89,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		`S2_MUL: begin	// Constant MUL16i
-			if(cycle_cnt_r==8'd57) begin
+			if(cycle_cnt_r==8'd58) begin
 				ss_r        <= `S3_ACC_THRU;
 				cycle_cnt_r <= 0;	
 			end else 
@@ -214,6 +214,7 @@ end
 always @(posedge cycle_dinlatch) begin
 	din_r <= din;
 end
+/*
 always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
 	if(cycle_dinlatch_pulse_r) begin
 		// dmem_wr_r   <= 1;
@@ -222,6 +223,12 @@ always @(posedge cycle_dinlatch_pulse_r or negedge dmem_clk) begin
 		// dmem_wr_r   <= 0;
 		cmem_addr_r <= cmem_addr_r + 1;
 	end
+end
+*/
+wire cycle_dinlatch_n = ~cycle_dinlatch_pulse_r;
+always @(posedge ~clk_fast) begin
+	if(cycle_acc_thru) cmem_addr_r <= -1;
+	else if(cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) cmem_addr_r <= cmem_addr_r + 1;
 end
 
 always @(negedge clk_fast) begin
@@ -253,13 +260,14 @@ always @(posedge alu_clk) begin
 end
 
 assign din_latch = cycle_dinlatch_pulse_r;
-assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) & ~cycle_acc_thru_dly1_r;
+assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul);
 // Truncated, loops back automatically when dmem_addr_r >= 64;
 
 always @(negedge clk_fast or negedge rst_n) begin
 	if(~rst_n)	dmem_addr_r <= 0;
 	else if(dmem_clk_en) dmem_addr_r <= dmem_addr_r + 1;
 end
+
 
 // Clock Gating
 //
@@ -278,16 +286,25 @@ end
 // +--------------------------------------+
 // 
 reg  regf_wr_r;
-wire regf_clken = (regf_wr_r|cycle_acc_thru);
-wire regf_clk   = regf_clken & alu_clk;
+wire regf_clken = (regf_wr_r|cycle_acc_thru|cycle_acc);
+wire regf_clk   = (regf_clken & alu_clk);
+wire regf_clk_flip = ~(cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul|cycle_mul_dly1_r);
+wire regf_clk_f = regf_clk ^ regf_clk_flip;
 reg [5:0]    regf_addr_r;
-
+// reg [5:0]    regf_addr_r_negedge;
+// wire [5:0] regf_addr_muxed = 
 always @(negedge alu_clk) begin
-	if(cycle_mul&~cycle_acc_thru_dly2_r) regf_wr_r = 1;
-	else                          regf_wr_r = 0;
+	if(cycle_mul) regf_wr_r = 1;
+	else          regf_wr_r = 0;
+end
+always @(negedge regf_clk_f) begin
 
-	if((~regf_clken)|(cycle_mul&cycle_acc_thru_dly2_r)) regf_addr_r <= 0;
-	else            regf_addr_r <= regf_addr_r + 1;
+	if(~regf_clken) 
+		regf_addr_r <= 0;
+	else if (cycle_acc_thru)
+		regf_addr_r <= 0;
+	else 
+		regf_addr_r <= regf_addr_r + 1;
 end
 
 // +------------------------------+
@@ -303,6 +320,7 @@ wire [28:0] alumux_din_fp16;
 wire [28:0] alumux_dmem_fp16;
 wire [28:0] alumux_cmem_fp16i;
 wire [28:0] alumux_self_fp29i; 
+reg [28:0] alumux_self_fp29i_r; 
 wire [28:0] alumux_regf_fp29i;
 wire [28:0] alumux_acc_fp29i;
 
@@ -348,6 +366,10 @@ always @(posedge alu_clk) begin
 	alu_opcode_r <= alu_opcode;
 end
 
+always @(negedge alu_clk) begin
+	alumux_self_fp29i_r <= alumux_self_fp29i;
+end
+
 
 // ALL FP16 Data Connectors are RIGHT ALIGNED
 // MUX of input A
@@ -365,7 +387,7 @@ always @* begin
 	alu_opcode = 2'bxx;		// Default (doing nothing, can be any value)
 	// Note: all conditions are if... if... rather than if... else if...
 	//       because these conditions are mutally exclusive
-	if(cycle_dinlatch) begin					// MUL16i First Cycle
+	if(cycle_dinlatch|cycle_load) begin					// MUL16i First Cycle
 		alu_a_29i = alumux_din_fp16;	// latched
 		alu_b_29i = alumux_cmem_fp16i;	// 
 		alu_opcode = 2'b10;
@@ -543,11 +565,11 @@ assign dout_29i = alu_y_29i;
  	// REGFile: 29b x 59w
 	SP_REGF u_regf (
 		.Q   (regf_q_fp29i ),
-		.CLK (regf_clk     ),
+		.CLK (regf_clk_f    ),
 		.CEN (~rst_n       ),
 		.WEN (~regf_wr_r   ),
 		.A   (regf_addr_r  ),
-		.D   (alumux_self_fp29i)
+		.D   (alumux_self_fp29i_r)
 	);
 
 `else
