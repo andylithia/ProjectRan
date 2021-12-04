@@ -62,6 +62,8 @@ wire [ML_EXPSIZE:0]     din_ML_expb = {1'b0,din_uni_b_exp[ML_EXPSIZE-1:0]};
 reg [ML_MANSIZE-1:0]    din_ML_mana;
 reg [ML_MANSIZE-1:0]    din_ML_manb;
 // Dealing with denorm number
+// FP16 Real Value: -1^sgn x 2^(exp-14) x (denorm + man x 2^-10)
+// FP29i in this design is always denormalized
 // wire s1_ml_ea_is_denorm = (din_ML_expa == ML_EXPBIAS);
 wire s1_ml_ea_is_denorm = (|din_ML_expa) == 1'b0;
 wire s2_ml_eb_is_denorm = (|din_ML_expb) == 1'b0;
@@ -132,6 +134,7 @@ end
 // +------------------------------------+
 // |          PIPELINE STAGE 1          |
 // +------------------------------------+
+// The pipeline registers (i.e. input DFF) are external
 
 reg [OPSIZE-1:0] s1_opcode;
 always @* begin
@@ -144,9 +147,9 @@ end
 // when one of the input is all zeros, you must give up the current exponent compare
 
 // ADDER: Exponent Compare
-wire [AL_EXPSIZE:0]   s1_ea_sub_eb = {1'b0,din_uni_a_exp} - {1'b0,din_uni_b_exp};
-wire                  s1_ea_lt_eb  = s1_ea_sub_eb[AL_EXPSIZE];	// Inspect Borrow at MSB
-wire                  s1_ea_gte_eb  = ~s1_ea_lt_eb;				// No Borrow -> EA-EB ≥ 0
+wire [AL_EXPSIZE:0]   s1_ea_sub_eb = {1'b0,din_uni_a_exp} - {1'b0,din_uni_b_exp};	// Padded with 1 extra bits
+wire                  s1_ea_lt_eb  = s1_ea_sub_eb[AL_EXPSIZE];						// Inspect Borrow at MSB
+wire                  s1_ea_gte_eb  = ~s1_ea_lt_eb;									// No Borrow -> EA-EB ≥ 0
 wire [AL_EXPSIZE-1:0] s1_ea_sub_eb_abs = s1_ea_gte_eb ?  s1_ea_sub_eb[AL_EXPSIZE-1:0] : {~s1_ea_sub_eb+1'b1};
 // ADDER: Sign Compare
 wire       s1_addsubn = ~(din_uni_a_sgn ^ din_uni_b_sgn);	// 1: ADD, 0: SUB
@@ -163,9 +166,24 @@ xchg #(.DWIDTH(22)) s1_u_manxchg(
 );
 
 // MULTIPLIER: Booth Encoder
+
+// --- PM: BR4 Encoder Input Latching
+// Not a good idea
+/*
+reg [ML_MANSIZE-1:0] s1_ML_mana_latched;
+reg [ML_MANSIZE-1:0] s1_ML_manb_latched;
+wire s1_opcode_ismul = s1_opcode == OPC_MUL16i;
+always @* begin
+	if(s1_opcode_ismul) begin
+		s1_ML_mana_latched = din_ML_mana;
+		s1_ML_manb_latched = din_ML_manb;
+	end
+end
+*/
+
 localparam  BR4SYM_SIZE = 3;		// Radix-4 Booth Symbol Size
 localparam  PPSIZE = ML_MANSIZE+1;
-wire [ML_MANSIZE+2:0] s1_br4enc_input = {2'b00, din_ML_manb, 1'b0};
+wire [ML_MANSIZE+2:0] s1_br4enc_input = {2'b00, s1_ML_manb, 1'b0};
 wire [(PPSIZE)*6-1:0]		    s1_br4_pp;	// BR4 Partial Products      (72bits)
 wire [5:0]                      s1_br4_s;	// BR4 Partial Product Signs (12bits)
 genvar gi;
@@ -173,7 +191,7 @@ generate
 	for(gi=0;gi<6;gi=gi+1) begin : gen_br4enc
 		// BR4 Partial Product Generator
 		booth_ppgen_r4 s1_u_br4ppgen (
-			.a(din_ML_mana),
+			.a(s1_ML_mana),
 			.br4(s1_br4enc_input[2*(gi+1):2*gi]),
 			.o(s1_br4_pp[PPSIZE*(gi+1)-1:PPSIZE*(gi)]),
 			.s(s1_br4_s[gi])
@@ -192,7 +210,7 @@ reg                  s2_sa_r;
 always @(posedge clk) begin
 	s2_opcode_r <= s1_opcode;
 	if(s1_opcode == OPC_ADD29i) begin
-		s2_expa_r   <= din_uni_a_exp;
+		s2_expa_r   <= din_uni_a_exp;	// AL Exp
 		s2_expb_r   <= din_uni_b_exp;
 	end else if(s1_opcode == OPC_MUL16i) begin
 		s2_expa_r   <= din_ML_expa;
@@ -219,6 +237,7 @@ end
 // ADDER: LHS Zero Detector
 // This is added to deal with adding with denormalized zero
 // when the zero has a larger exponent
+// Skip all subsequent operations, and use only RHS from the previous exchanger
 wire              s2_lhs_is_zero = ~(|s2_mmux_lhs_r);
 wire [OPSIZE-1:0] s2_opcode_mod;
   assign s2_opcode_mod = ((s2_opcode_r==OPC_ADD29i)&&s2_lhs_is_zero) ? OPC_ADDSKIP : s2_opcode_r;
@@ -263,13 +282,16 @@ assign s2_mmux3_lhs_addsub = (s2_lhs_is_zero) ? {1'b0,s2_mmux_rhs_r} : {1'b0, s2
 // Multiplier Signal Relay
 reg [AL_EXPSIZE-1:0]	s2_ea_r;
 reg [AL_EXPSIZE-1:0]	s2_eb_r;
-reg [PPSIZE*6-1:0]		s2_br4_pp_r;
-reg [5:0]               s2_br4_s_r;
+reg [PPSIZE*6-1:0]		s2_br4_pp_r;	// Partial Products (Huge Vector)
+reg [5:0]               s2_br4_s_r;		// S2 & S5, S5 is always 0 in unsigned multiplication
 always @(posedge clk) begin
-	s2_ea_r      <= din_uni_a_exp;
-	s2_eb_r      <= din_uni_b_exp;
-	s2_br4_pp_r  <= s1_br4_pp;
-	s2_br4_s_r   <= s1_br4_s;
+	// ---- PM: MUL PP Gating
+	if(s1_opcode==OPC_MUL16i) begin
+		s2_ea_r      <= din_uni_a_exp;
+		s2_eb_r      <= din_uni_b_exp;
+		s2_br4_pp_r  <= s1_br4_pp;
+		s2_br4_s_r   <= s1_br4_s;
+	end
 end
 
 // Booth Radix-4 Partial Summation
@@ -283,6 +305,7 @@ reg [PPSIZE+7-1:0] s2_ps0;
 reg [PPSIZE+4-1:0] s2_ps1;
 wire               s2_s2 = s2_br4_s_r[2];
 
+// This is pretty bad, consider Wallace Tree?
 always @* begin
 	s2_ps0 =          {4'b0,{!s2_br4_s_r[0]},{2{s2_br4_s_r[0]}},pp0};
 	s2_ps0 = s2_ps0 + {4'b0001,{!s2_br4_s_r[1]},pp1,1'b0,s2_br4_s_r[0]};
