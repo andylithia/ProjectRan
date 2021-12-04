@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Fri Dec  3 21:03:00 2021
+[*] Sat Dec  4 06:53:18 2021
 [*]
 [dumpfile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.vcd"
-[dumpfile_mtime] "Fri Dec  3 21:01:37 2021"
-[dumpfile_size] 111006
+[dumpfile_mtime] "Sat Dec  4 06:49:24 2021"
+[dumpfile_size] 437254
 [savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.gtkw"
-[timestart] 6495687000000
-[size] 1680 997
-[pos] 0 17
-*-30.553284 6500138000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 6524948000000
+[size] 836 991
+[pos] 843 29
+*-30.335400 6527929687500 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] W4823_FIR_tb.
 [sst_width] 193
 [signals_width] 245
 [sst_expanded] 1
-[sst_vpaned_height] 306
+[sst_vpaned_height] 304
 @22
 W4823_FIR_tb.clk_div[7:0]
 @28
@@ -22,11 +22,10 @@ W4823_FIR_tb.clk_fast
 W4823_FIR_tb.clk_slow
 W4823_FIR_tb.rst_n
 W4823_FIR_tb.dut.cycle_dinlatch
-@29
 W4823_FIR_tb.dut.cycle_load
-@28
 W4823_FIR_tb.dut.cycle_mul_ndav
 W4823_FIR_tb.dut.cycle_mul
+W4823_FIR_tb.dut.cycle_mul_dly1_r
 W4823_FIR_tb.dut.cycle_acc_thru
 W4823_FIR_tb.dut.cycle_acc
 W4823_FIR_tb.dut.cycle_accnorm
@@ -37,26 +36,33 @@ W4823_FIR_tb.dut.cycle_sleep
 W4823_FIR_tb.dut.din_latch
 W4823_FIR_tb.dut.dmem_clk
 W4823_FIR_tb.dut.alu_clk
+W4823_FIR_tb.dut.dmem_wr_r
+W4823_FIR_tb.dut.dmem_clk_en
 @22
-W4823_FIR_tb.dut.din[15:0]
 W4823_FIR_tb.dut.din_r[15:0]
 W4823_FIR_tb.dut.dmem_addr_r[5:0]
 W4823_FIR_tb.dut.dmem_q_fp16[15:0]
 W4823_FIR_tb.dut.cmem_addr[5:0]
 W4823_FIR_tb.dut.cmem_q_fp16i[16:0]
 W4823_FIR_tb.dut.regf_q_fp29i[28:0]
+@23
+W4823_FIR_tb.dut.alumux_self_fp29i_r[28:0]
+@22
 W4823_FIR_tb.dut.regf_addr_r[5:0]
 @28
 W4823_FIR_tb.dut.regf_clken
 W4823_FIR_tb.dut.regf_wr_r
+W4823_FIR_tb.dut.regf_clk_f
 W4823_FIR_tb.dut.regf_clk
 @200
 -vvvvv FPALU
 @28
 W4823_FIR_tb.dut.alu_opcode[1:0]
+W4823_FIR_tb.dut.alu_opcode_r[1:0]
 @22
 W4823_FIR_tb.dut.alu_a_m[21:0]
 W4823_FIR_tb.dut.alu_b_m[21:0]
 W4823_FIR_tb.dut.alu_y_m[21:0]
+W4823_FIR_tb.dut.regf_q_fp29i[28:0]
 [pattern_trace] 1
 [pattern_trace] 0

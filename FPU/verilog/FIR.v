@@ -260,7 +260,7 @@ always @(posedge alu_clk) begin
 end
 
 assign din_latch = cycle_dinlatch_pulse_r;
-assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul);
+assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul|cycle_mul_dly1_r);
 // Truncated, loops back automatically when dmem_addr_r >= 64;
 
 always @(negedge clk_fast or negedge rst_n) begin
