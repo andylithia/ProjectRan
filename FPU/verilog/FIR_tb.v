@@ -31,6 +31,7 @@ always @(posedge clk_fast or negedge rst_n) begin
    else       clk_div = clk_div + 1'b1; 
 end
 
+integer fp_output;
 initial begin
     rst_n = 1;
     clk_fast = 0;
@@ -45,9 +46,11 @@ initial begin
     //#100000
 	// #10000000
 	#6420000
+	fp_output = $fopen("output.txt","w+");
     $dumpfile("W4823_FIR_tb.vcd");
     $dumpvars(0,W4823_FIR_tb);
-	#150000
+	#15000000
+	$fclose(fp_output);
 	$finish;
 end
 
@@ -65,8 +68,16 @@ assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
 		end
 	end
 	// Din Writer
+	real       din_real;
+	reg [10:0] din_man_dn;
 	always @(posedge clk_slow or negedge rst_n) begin
-		if(din[14:10]==0) $display("DIN DENORM @ %Xh",daddr);
+		if(din[14:10]==0) begin
+			$display("DIN DENORM @ %Xh",daddr);
+			din_man_dn = {din[9:0], 1'b0};
+		end else
+			din_man_dn = {1'b1,din[9:0]};
+		din_real = (1.0-2.0*din[15]) * din_man_dn * 2.0**(-10.0) * 2.0**(din[14:10]-15.0);
+		
 		if(~rst_n) daddr <= 0;
 		else       daddr <= daddr + 1;
 	end
@@ -90,6 +101,8 @@ assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
 	end
 `endif /* USE_REAL_DATA */
 
+wire [28:0] dout_raw;
+
 W4823_FIR dut (
     .rst_n    (rst_n   ),
     .clk_slow (clk_slow),
@@ -99,9 +112,18 @@ W4823_FIR dut (
     .cin      (cin     ),
     .caddr    (caddr   ),
     .cload    (cload   ),
-    .dout     (        ),
+    .dout_29i (dout_raw),
     .valid    (        )
 );
+
+real dout_real;
+always @(posedge clk_fast) begin
+	if(clk_div==8'h12) begin
+		dout_real = (1.0-2.0*dout_raw[28]) * dout_raw[21:0] * 2.0**(-21.0 + dout_raw[27:22] - 31.0);
+		$fwrite(fp_output,"%e\n",dout_real);
+	end
+end
+
 
 endmodule /* W4823_FIR_tb */
 
