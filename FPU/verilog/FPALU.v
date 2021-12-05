@@ -110,12 +110,24 @@ end
 		y_real_FP29i     = (1.0-2.0*dout_uni_y_sgn) * dout_uni_y_man_dn * 2.0**(-22.0 + dout_uni_y_exp - 31.0);
 		y_expected_ml = a_real_FP16_s5  * b_real_FP16_s5;
 		y_expected_ad = a_real_FP29i_s5 + b_real_FP29i_s5;
-		many_expected_ml = din_ML_mana * din_ML_manb;
-		mul_k1 = y_real_FP29i / y_expected_ml;
-		mul_ik1 = 1/mul_k1;
-		mul_valid = ($abs(mul_k1)-1.0<0.00001)|(y_real_FP29i==y_expected_ml);
-		add_k1 = (y_real_FP29i / y_expected_ad);
-		add_valid = ($abs(add_k1)-1.0<0.00001);	// Notice: NaN from 0/0 can also result in add_valid
+		
+		mul_valid = 0;
+		if(y_real_FP29i == y_expected_ml) begin
+			mul_valid = 1;
+		end else begin
+			integer tm = (y_real_FP29i-y_expected_ml)/y_expected_ml;
+			if(tm>=0) mul_valid = ( tm)<0.00001;
+			else      mul_valid = (-tm)<0.00001;
+		end
+
+		add_valid = 0;
+		if(y_real_FP29i == y_expected_ad) begin
+			add_valid = 1;
+		end else begin
+			integer ta = y_real_FP29i - y_expected_ml;
+			if(ta>=0) add_valid = ( ta)<0.00001;
+			else      add_valid = (-ta)<0.00001; 
+		end
 	end
 
 	integer i;
