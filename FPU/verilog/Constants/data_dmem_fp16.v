@@ -1,3 +1,6 @@
+
+`timescale 1ns/1fs
+
 module data_dmem_fp16(
     input [8:0]         a,
     output reg [15:0]   q   

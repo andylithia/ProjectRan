@@ -1,5 +1,6 @@
 // Integratd Clock Gating Cell
 // 
+`timescale 1ns/1fs
 module icgc (
 
 	input		CK,

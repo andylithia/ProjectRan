@@ -144,10 +144,13 @@ end
 			b_real_FP16 [i]  <= b_real_FP16 [i-1];
 			b_real_FP29i [i] <= b_real_FP29i [i-1];
 		end
-		a_real_FP16_s5  <= a_real_FP16[3];
-		a_real_FP29i_s5 <= a_real_FP29i[3];
-		b_real_FP16_s5  <= b_real_FP16[3];
-		b_real_FP29i_s5 <= b_real_FP29i[3];
+		if(s4_opcode_r==OPC_MUL16i) begin
+			a_real_FP16_s5  <= a_real_FP16[3];
+			b_real_FP16_s5  <= b_real_FP16[3];
+		end else begin
+			a_real_FP29i_s5 <= a_real_FP29i[3];
+			b_real_FP29i_s5 <= b_real_FP29i[3];
+		end
 	end
 `endif /* DEBUGINFO */
 

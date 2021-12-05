@@ -7,17 +7,22 @@
 `timescale 1ns/1fs
 module W4823_FIR_tb;
 
-reg       rst_n;
-reg       clk_fast;
-reg [7:0] clk_div;
-wire      clk_slow = clk_div[7];    // 10kHz
-reg       first_cycle_r;
+`define USE_REAL_DATA
+`define DEBUGINFO
 
-reg [5:0]  caddr;
+reg         rst_n;
+reg         clk_fast;
+reg [7:0]   clk_div;
+wire        clk_slow = clk_div[7];    // 10kHz
+reg         first_cycle_r;
+
+// CMEM Writer
+integer     load_cmem_cnt_r;
+wire        cload;
+reg  [5:0]  caddr;
 wire [15:0] cin;
-wire       cload;
-integer    load_cmem_cnt_r;
-
+// Din Writer
+reg [8:0]   daddr;
 wire [15:0] din;
 
 
@@ -48,45 +53,54 @@ end
 
 always #195.3125 clk_fast = ~clk_fast;
 
-// CMEM Writer
 assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
-always @(posedge clk_fast) begin
-	if(load_cmem_cnt_r<65) begin
-		if(cin[14:10]==0) $display("CIN DENORM @ 0x%x\n", caddr);
-		caddr           <= caddr + 1;
-		load_cmem_cnt_r <= load_cmem_cnt_r + 1;
-		// Assuming 16bit FP16
+`ifdef USE_REAL_DATA
+	// CMEM Writer
+	always @(posedge clk_fast) begin
+		if(load_cmem_cnt_r<65) begin
+			if(cin[14:10]==0) $display("CIN DENORM @ %Xh", caddr);
+			caddr           <= caddr + 1;
+			load_cmem_cnt_r <= load_cmem_cnt_r + 1;
+			// Assuming 16bit FP16
+		end
 	end
-end
-
-data_cmem_fp16 u_cmem_src(
-	.a(caddr),
-	.q(cin)
-);
-
-data_dmem_fp16 u_dmem_src(
-	.a(daddr),
-	.q(din)
-);
-// Din Writer
-reg [8:0] daddr; 
-always @(posedge clk_slow or negedge rst_n) begin
-	if(din[14:10]==0) $display("DIN DENORM @ 0x%x\n",daddr);
-	if(~rst_n) daddr <= 0;
-	else       daddr <= daddr + 1;
-end
+	// Din Writer
+	always @(posedge clk_slow or negedge rst_n) begin
+		if(din[14:10]==0) $display("DIN DENORM @ %Xh",daddr);
+		if(~rst_n) daddr <= 0;
+		else       daddr <= daddr + 1;
+	end
+	data_cmem_fp16 u_cmem_src(.a(caddr),.q(cin));
+	data_dmem_fp16 u_dmem_src(.a(daddr),.q(din));
+`else
+	// CMEM Writer
+	assign cin = {10'b0011110000,caddr};
+	always @(posedge clk_fast) bvegin
+		if(load_cmem_cnt_r<65) begin
+			caddr <= caddr + 1;
+			// cin <= {$random};
+			load_cmem_cnt_r = load_cmem_cnt_r + 1;
+		end
+	end
+	// Din Writer
+	assign din = {7'b0011110,daddr};
+	always @(posedge clk_slow or negedge rst_n) begin
+		if(~rst_n) daddr <= 0;
+		else       daddr <= daddr + 1;
+	end
+`endif /* USE_REAL_DATA */
 
 W4823_FIR dut (
-    .rst_n(rst_n),
-    .clk_slow(clk_slow),
-    .clk(clk_fast),
-    .din(din),
-    .valid_in(1'b0),
-    .cin(cin),
-    .caddr(caddr),
-    .cload(cload),
-    .dout(),
-    .valid()
+    .rst_n    (rst_n   ),
+    .clk_slow (clk_slow),
+    .clk      (clk_fast),
+    .din      (din     ),
+    .valid_in (1'b0    ),
+    .cin      (cin     ),
+    .caddr    (caddr   ),
+    .cload    (cload   ),
+    .dout     (        ),
+    .valid    (        )
 );
 
 endmodule /* W4823_FIR_tb */
