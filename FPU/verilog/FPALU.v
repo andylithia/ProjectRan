@@ -28,7 +28,7 @@ module FPALU (
 );
 
 // This option adds extra real number registers to assist debugging
-// `define DEBUGINFO
+`define DEBUGINFO
 
 // ----- CONSTANTS -----
 localparam ML_MANSIZE = 11;
@@ -99,6 +99,8 @@ end
 	real add_k1;
 	reg  add_valid; 
 	
+	real tm;
+	real ta;
 	always @* begin
 		a_real_FP16  [0] = (1.0-2.0*din_uni_a_sgn) * din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
 		b_real_FP16  [0] = (1.0-2.0*din_uni_b_sgn) * din_ML_manb * 2.0**(-10.0) * 2**(din_ML_expb-15.0);
@@ -115,18 +117,22 @@ end
 		if(y_real_FP29i == y_expected_ml) begin
 			mul_valid = 1;
 		end else begin
-			integer tm = (y_real_FP29i-y_expected_ml)/y_expected_ml;
-			if(tm>=0) mul_valid = ( tm)<0.00001;
-			else      mul_valid = (-tm)<0.00001;
+			if(y_expected_ml!=0.0)
+				tm = (y_real_FP29i-y_expected_ml)/(y_expected_ml);
+			else tm = y_real_FP29i; 
+			if(tm>=0) mul_valid = ( tm)<0.0001;
+			else      mul_valid = (-tm)<0.0001;
 		end
 
 		add_valid = 0;
 		if(y_real_FP29i == y_expected_ad) begin
 			add_valid = 1;
 		end else begin
-			integer ta = y_real_FP29i - y_expected_ml;
-			if(ta>=0) add_valid = ( ta)<0.00001;
-			else      add_valid = (-ta)<0.00001; 
+			if(y_expected_ad!=0.0)
+				ta = (y_real_FP29i - y_expected_ad)/y_expected_ad;
+			else ta = y_real_FP29i;	
+			if(ta>=0) add_valid = ( ta)<0.0001;
+			else      add_valid = (-ta)<0.0001; 
 		end
 	end
 
