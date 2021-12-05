@@ -31,7 +31,8 @@ check_design
 #uniquify
 current_design $top_level
 link
-compile_ultra
+compile_ultra 
+optimize_netlist -area
 
 
 #########################

@@ -1,0 +1,266 @@
+# //  Questa Sim
+# //  Version 10.7b_1 linux Jul 26 2018
+# //
+# //  Copyright 1991-2018 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# do runsim.do
+# ** Warning: (vlib-34) Library already exists at "work".
+# QuestaSim vmap 10.7b_1 Lib Mapping Utility 2018.07 Jul 26 2018
+# vmap work work 
+# Modifying modelsim.ini
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 20:56:41 on Dec 04,2021
+# vlog -reportprogress 300 "+acc" -incr ../../verilog/misc.v 
+# -- Skipping module xchg
+# -- Skipping module bsr
+# -- Skipping module bsl
+# -- Skipping module count_lead_zero
+# -- Skipping module booth_enc_r4
+# -- Skipping module cla_adder
+# -- Skipping module booth_ppgen_r4
+# 
+# Top level modules:
+# 	xchg
+# 	bsr
+# 	bsl
+# 	booth_enc_r4
+# 	cla_adder
+# 	booth_ppgen_r4
+# End time: 20:56:42 on Dec 04,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 20:56:43 on Dec 04,2021
+# vlog -reportprogress 300 "+acc" -incr ../../verilog/FPALU.v 
+# -- Compiling module FPALU
+# 
+# Top level modules:
+# 	FPALU
+# End time: 20:56:44 on Dec 04,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 20:56:44 on Dec 04,2021
+# vlog -reportprogress 300 "+acc" -incr ../../verilog/Constants/data_cmem_fp16.v 
+# -- Skipping module data_cmem_fp16
+# 
+# Top level modules:
+# 	data_cmem_fp16
+# End time: 20:56:44 on Dec 04,2021, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 20:56:45 on Dec 04,2021
+# vlog -reportprogress 300 "+acc" -incr ../../verilog/Constants/data_dmem_fp16.v 
+# -- Skipping module data_dmem_fp16
+# 
+# Top level modules:
+# 	data_dmem_fp16
+# End time: 20:56:45 on Dec 04,2021, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 20:56:45 on Dec 04,2021
+# vlog -reportprogress 300 "+acc" -incr ../../verilog/FPALU_tb.v 
+# -- Skipping module FPALU_tb
+# 
+# Top level modules:
+# 	FPALU_tb
+# End time: 20:56:47 on Dec 04,2021, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 0
+# ** Warning: (vsim-8689) Ignoring plusarg '+acc'.  Did you mean '-voptargs=+acc'?
+# vsim "+acc" -t ns -lib work FPALU_tb 
+# Start time: 20:56:47 on Dec 04,2021
+# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
+# Loading work.FPALU_tb(fast)
+# Loading work.data_cmem_fp16(fast)
+# Loading work.data_dmem_fp16(fast)
+# Loading work.FPALU(fast)
+# Loading work.xchg(fast)
+# Loading work.booth_ppgen_r4(fast)
+# Loading work.bsr(fast)
+# Loading work.cla_adder(fast)
+# Loading work.count_lead_zero(fast__4)
+# Loading work.count_lead_zero(fast__3)
+# Loading work.count_lead_zero(fast__2)
+# Loading work.count_lead_zero(fast__1)
+# Loading work.count_lead_zero(fast)
+# Loading work.bsl(fast)
+# ** Error (suppressible): (vsim-8630) Infinity results from division operation.
+#    Time: 408 ns  Iteration: 2  Process: /FPALU_tb/dut/#ALWAYS#104 File: ../../verilog/FPALU.v Line: 121
+# ** Error (suppressible): (vsim-8630) Infinity results from division operation.
+#    Time: 408 ns  Iteration: 3  Process: /FPALU_tb/dut/#ALWAYS#104 File: ../../verilog/FPALU.v Line: 121
+# ** Error (suppressible): (vsim-8630) Infinity results from division operation.
+#    Time: 409 ns  Iteration: 1  Process: /FPALU_tb/dut/#ALWAYS#104 File: ../../verilog/FPALU.v Line: 121
+# ** Error (suppressible): (vsim-8630) Infinity results from division operation.
+#    Time: 409 ns  Iteration: 2  Process: /FPALU_tb/dut/#ALWAYS#104 File: ../../verilog/FPALU.v Line: 121
+# ** Error (suppressible): (vsim-8630) Infinity results from division operation.
+#    Time: 409 ns  Iteration: 3  Process: /FPALU_tb/dut/#ALWAYS#104 File: ../../verilog/FPALU.v Line: 121
+# ** Note: $finish    : ../../verilog/FPALU_tb.v(99)
+#    Time: 802 ns  Iteration: 0  Instance: /FPALU_tb
+# 1
+# Break in Module FPALU_tb at ../../verilog/FPALU_tb.v line 99
+vlog +acc -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact /homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 20:59:01 on Dec 04,2021
+# vlog -reportprogress 300 "+acc" -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact /homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v 
+# -- Compiling module FPALU
+# 
+# Top level modules:
+# 	FPALU
+# End time: 20:59:01 on Dec 04,2021, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+restart
+# Closing VCD file "dump.vcd"
+# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
+# Loading work.FPALU_tb(fast)
+# Loading work.data_cmem_fp16(fast)
+# Loading work.data_dmem_fp16(fast)
+# Loading work.FPALU(fast)
+# Loading work.xchg(fast)
+# Loading work.booth_ppgen_r4(fast)
+# Loading work.bsr(fast)
+# Loading work.cla_adder(fast)
+# Loading work.count_lead_zero(fast__4)
+# Loading work.count_lead_zero(fast__3)
+# Loading work.count_lead_zero(fast__2)
+# Loading work.count_lead_zero(fast__1)
+# Loading work.count_lead_zero(fast)
+# Loading work.bsl(fast)
+run -all
+# ** Note: $finish    : ../../verilog/FPALU_tb.v(99)
+#    Time: 802 ns  Iteration: 0  Instance: /FPALU_tb
+# 1
+# Break in Module FPALU_tb at ../../verilog/FPALU_tb.v line 99
+add wave -position insertpoint  \
+sim:/FPALU_tb/dut/a_real_FP29i_s5 \
+sim:/FPALU_tb/dut/a_real_FP16_s5
+restart
+# Closing VCD file "dump.vcd"
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# Loading work.FPALU_tb(fast)
+# Loading work.data_cmem_fp16(fast)
+# Loading work.data_dmem_fp16(fast)
+# Loading work.FPALU(fast)
+# Loading work.xchg(fast)
+# Loading work.booth_ppgen_r4(fast)
+# Loading work.bsr(fast)
+# Loading work.cla_adder(fast)
+# Loading work.count_lead_zero(fast__4)
+# Loading work.count_lead_zero(fast__3)
+# Loading work.count_lead_zero(fast__2)
+# Loading work.count_lead_zero(fast__1)
+# Loading work.count_lead_zero(fast)
+# Loading work.bsl(fast)
+run -all
+# ** Note: $finish    : ../../verilog/FPALU_tb.v(99)
+#    Time: 802 ns  Iteration: 0  Instance: /FPALU_tb
+# 1
+# Break in Module FPALU_tb at ../../verilog/FPALU_tb.v line 99
+write format wave -window .main_pane.wave.interior.cs.body.pw.wf /homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/qsim_rtl/FPALU/waveformat.do
+add wave -position insertpoint  \
+sim:/FPALU_tb/dut/b_real_FP29i_s5
+restart
+# Closing VCD file "dump.vcd"
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# Loading work.FPALU_tb(fast)
+# Loading work.data_cmem_fp16(fast)
+# Loading work.data_dmem_fp16(fast)
+# Loading work.FPALU(fast)
+# Loading work.xchg(fast)
+# Loading work.booth_ppgen_r4(fast)
+# Loading work.bsr(fast)
+# Loading work.cla_adder(fast)
+# Loading work.count_lead_zero(fast__4)
+# Loading work.count_lead_zero(fast__3)
+# Loading work.count_lead_zero(fast__2)
+# Loading work.count_lead_zero(fast__1)
+# Loading work.count_lead_zero(fast)
+# Loading work.bsl(fast)
+run -all
+# ** Note: $finish    : ../../verilog/FPALU_tb.v(99)
+#    Time: 802 ns  Iteration: 0  Instance: /FPALU_tb
+# 1
+# Break in Module FPALU_tb at ../../verilog/FPALU_tb.v line 99
+vlog +acc -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact /homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v
+# QuestaSim vlog 10.7b_1 Compiler 2018.07 Jul 26 2018
+# Start time: 02:10:36 on Dec 05,2021
+# vlog -reportprogress 300 "+acc" -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact /homes/user/stud/spring21/al4116/project/Github/ProjectRan/FPU/verilog/FPALU.v 
+# -- Compiling module FPALU
+# 
+# Top level modules:
+# 	FPALU
+# End time: 02:10:37 on Dec 05,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+restart
+# Closing VCD file "dump.vcd"
+# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
+# Loading work.FPALU_tb(fast)
+# Loading work.data_cmem_fp16(fast)
+# Loading work.data_dmem_fp16(fast)
+# Loading work.FPALU(fast)
+# Loading work.xchg(fast)
+# Loading work.booth_ppgen_r4(fast)
+# Loading work.bsr(fast)
+# Loading work.cla_adder(fast)
+# Loading work.count_lead_zero(fast__4)
+# Loading work.count_lead_zero(fast__3)
+# Loading work.count_lead_zero(fast__2)
+# Loading work.count_lead_zero(fast__1)
+# Loading work.count_lead_zero(fast)
+# Loading work.bsl(fast)
+run -all
+# ** Note: $finish    : ../../verilog/FPALU_tb.v(99)
+#    Time: 802 ns  Iteration: 0  Instance: /FPALU_tb
+# 1
+# Break in Module FPALU_tb at ../../verilog/FPALU_tb.v line 99
+add wave -position insertpoint  \
+sim:/FPALU_tb/rst_n \
+sim:/FPALU_tb/result \
+sim:/FPALU_tb/opcode \
+sim:/FPALU_tb/i \
+sim:/FPALU_tb/dout_uni_y_sgn \
+sim:/FPALU_tb/dout_uni_y_man_dn \
+sim:/FPALU_tb/dout_uni_y_exp \
+sim:/FPALU_tb/din_uni_b_sgn \
+sim:/FPALU_tb/din_uni_b_man_dn \
+sim:/FPALU_tb/din_uni_b_exp \
+sim:/FPALU_tb/din_uni_a_sgn \
+sim:/FPALU_tb/din_uni_a_man_dn \
+sim:/FPALU_tb/din_uni_a_exp \
+sim:/FPALU_tb/din \
+sim:/FPALU_tb/daddr \
+sim:/FPALU_tb/clk \
+sim:/FPALU_tb/cin \
+sim:/FPALU_tb/caddr \
+sim:/FPALU_tb/b \
+sim:/FPALU_tb/a
+restart
+# Closing VCD file "dump.vcd"
+# ** Note: (vsim-8009) Loading existing optimized design _opt
+# Loading work.FPALU_tb(fast)
+# Loading work.data_cmem_fp16(fast)
+# Loading work.data_dmem_fp16(fast)
+# Loading work.FPALU(fast)
+# Loading work.xchg(fast)
+# Loading work.booth_ppgen_r4(fast)
+# Loading work.bsr(fast)
+# Loading work.cla_adder(fast)
+# Loading work.count_lead_zero(fast__4)
+# Loading work.count_lead_zero(fast__3)
+# Loading work.count_lead_zero(fast__2)
+# Loading work.count_lead_zero(fast__1)
+# Loading work.count_lead_zero(fast)
+# Loading work.bsl(fast)
+run -all
+# ** Note: $finish    : ../../verilog/FPALU_tb.v(99)
+#    Time: 802 ns  Iteration: 0  Instance: /FPALU_tb
+# 1
+# Break in Module FPALU_tb at ../../verilog/FPALU_tb.v line 99
+# End time: 02:54:48 on Dec 05,2021, Elapsed time: 5:58:01
+# Errors: 0, Warnings: 0

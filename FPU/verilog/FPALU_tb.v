@@ -68,33 +68,33 @@ module FPALU_tb();
 		a = {$random};
 		b = {$random};
 		clk    = 0;
-		caddr = 0;
-		daddr = 0;
+		caddr  = 0;
+		daddr  = 0;
 
-		#1;
+		#331;
 		
 		$dumpfile("dump.vcd");
 		$dumpvars;
-		#1 clk = ~clk;
+		#331 clk = 1;
 
 		// Multiplier Test
 		opcode = 2'b10;	// MUL16i
 		for(i=0;i<200;i=i+1) begin
-			#1 clk = ~clk;
-			a = {din[15], 1'b0, din[14:10], 12'b0, din[9:0]};
-			b = {cin[15], 1'b0, cin[14:10], 12'b0, cin[9:0]};
+			#331 clk = 0;
 			caddr = caddr + 1;
 			daddr = daddr + 1;
-			#1 clk = ~clk;
+			a = {din[15], 1'b0, din[14:10], 12'b0, din[9:0]};
+			b = {cin[15], 1'b0, cin[14:10], 12'b0, cin[9:0]};
+			#331 clk = 1;
 		end
 
 		// Adder test
 		opcode = 2'b11;	// ADD29i
 		for(i=0;i<200;i=i+1) begin
-			#1 clk = ~clk;
+			#331 clk = 0;
 			a = {$random};
 			b = {$random};
-			#1 clk = ~clk;
+			#331 clk = 1;
 		end
 		$finish;
 	end
