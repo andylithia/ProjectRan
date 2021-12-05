@@ -1,25 +1,26 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Sun Dec  5 01:05:13 2021
+[*] Sun Dec  5 02:46:15 2021
 [*]
 [dumpfile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/dump.vcd"
-[dumpfile_mtime] "Sun Dec  5 01:04:25 2021"
-[dumpfile_size] 897513
+[dumpfile_mtime] "Sun Dec  5 02:41:27 2021"
+[dumpfile_size] 884427
 [savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/FPALU_FPADD29i_test.gtkw"
-[timestart] 409440000
-[size] 1680 997
-[pos] 0 22
-*-21.982679 422000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 428780000
+[size] 836 991
+[pos] 3 25
+*-21.982679 440960000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] FPALU_tb.
 [treeopen] FPALU_tb.dut.
 [sst_width] 193
 [signals_width] 227
 [sst_expanded] 1
-[sst_vpaned_height] 306
+[sst_vpaned_height] 304
 @28
 FPALU_tb.clk
+FPALU_tb.dut.s5_opcode_r[1:0]
 FPALU_tb.dut.s3_opcode_r[1:0]
-@c10024
+@c00028
 FPALU_tb.din_uni_a_exp[5:0]
 @28
 (0)FPALU_tb.din_uni_a_exp[5:0]
@@ -28,13 +29,13 @@ FPALU_tb.din_uni_a_exp[5:0]
 (3)FPALU_tb.din_uni_a_exp[5:0]
 (4)FPALU_tb.din_uni_a_exp[5:0]
 (5)FPALU_tb.din_uni_a_exp[5:0]
-@1401200
+@1401208
 -group_end
 @24
 FPALU_tb.din_uni_a_man_dn[21:0]
 @28
 FPALU_tb.din_uni_a_sgn
-@22
+@29
 FPALU_tb.din_uni_b_exp[5:0]
 @28
 FPALU_tb.din_uni_b_man_dn[21:0]
@@ -66,9 +67,8 @@ FPALU_tb.dout_uni_y_man_dn[21:0]
 (21)FPALU_tb.dout_uni_y_man_dn[21:0]
 @1401200
 -group_end
-@22
-FPALU_tb.dout_uni_y_exp[5:0]
 @28
+FPALU_tb.dout_uni_y_exp[5:0]
 FPALU_tb.dout_uni_y_sgn
 @200
 -vvvvv ManA Norm Test
@@ -124,16 +124,14 @@ FPALU_tb.dut.s3_alumux_lhs[22:0]
 FPALU_tb.dut.s5_expadj_final[6:0]
 @200
 -vvvvv Compare
-@24
-FPALU_tb.dut.a_real_FP16_s5
-FPALU_tb.dut.b_real_FP16_s5
-FPALU_tb.dut.y_real_FP29i
-@29
-FPALU_tb.dut.y_expected_ad
 @28
+FPALU_tb.dut.a_real_FP29i_s5
+FPALU_tb.dut.b_real_FP29i_s5
+@24
+FPALU_tb.dut.y_real_FP29i
+@28
+FPALU_tb.dut.y_expected_ad
 FPALU_tb.dut.y_expected_ml
-FPALU_tb.dut.mul_ik1
-FPALU_tb.dut.mul_k1
 FPALU_tb.dut.add_valid
 FPALU_tb.dut.mul_valid
 [pattern_trace] 1
