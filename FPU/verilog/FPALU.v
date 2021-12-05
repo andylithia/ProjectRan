@@ -66,14 +66,14 @@ reg [ML_MANSIZE-1:0]    din_ML_manb;
 // FP29i in this design is always denormalized
 // wire s1_ml_ea_is_denorm = (din_ML_expa == ML_EXPBIAS);
 wire s1_ml_ea_is_denorm = (|din_ML_expa) == 1'b0;
-wire s2_ml_eb_is_denorm = (|din_ML_expb) == 1'b0;
+wire s1_ml_eb_is_denorm = (|din_ML_expb) == 1'b0;
 always @* begin
 	// din_ML_manx is 11 bit denormalized mantissa
 	// din_uni_x_man_dn is 10 bit normalized mantissa
 	if(s1_ml_ea_is_denorm) din_ML_mana = {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0};
-	else                   din_ML_mana = {1'b1,din_uni_a_man_dn[ML_MANSIZE-2:0]};
+	else                   din_ML_mana = {1'b1, din_uni_a_man_dn[ML_MANSIZE-2:0]};
 	
-	if(s1_ml_eb_is_denorm) din_ML_manb = {din_uni_a_man_dn[ML_MANSIZE-2:0],1'b0};
+	if(s1_ml_eb_is_denorm) din_ML_manb = {din_uni_b_man_dn[ML_MANSIZE-2:0],1'b0};
 	else                   din_ML_manb = {1'b1, din_uni_b_man_dn[ML_MANSIZE-2:0]};
 	// din_ML_manb = din_uni_b_man_dn[ML_MANSIZE-1:0];	// Always Denorm
 end
@@ -81,11 +81,11 @@ end
 `ifdef DEBUGINFO
 	real a_real_FP16  [3:0];	// Can be Normalized
 	real a_real_FP29i [3:0];	// Always Denorm
-	real b_real_FP16i [3:0];	// Always Denorm
+	real b_real_FP16  [3:0];	// Always Denorm
 	real b_real_FP29i [3:0];	// Always Denorm
 	real a_real_FP16_s5;		// Icarus Doesn't support real array dumping?
 	real a_real_FP29i_s5;		// Written Explicitly...
-	real b_real_FP16i_s5;		// |
+	real b_real_FP16_s5;		// |
 	real b_real_FP29i_s5;		// /
 	real y_real_FP29i;			// Always Denorm, Used in OP: ADDSKIP, ADD29i, MUL16i
 	real y_real_FP29;			// Always Denorm, Used in OP: ADD29NORM
@@ -101,18 +101,21 @@ end
 	
 	always @* begin
 		a_real_FP16  [0] = (1.0-2.0*din_uni_a_sgn) * din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
+		b_real_FP16  [0] = (1.0-2.0*din_uni_b_sgn) * din_ML_manb * 2.0**(-10.0) * 2**(din_ML_expb-15.0);
+		// a_real_FP16  [0] = (-1.0**din_uni_a_sgn) * ((din_ML_expa==0)*1.0 + (din_ML_mana[ML_MANSIZE-2:0]*2.0**(-10.0))) * 2.0**(din_ML_expa-14.0);
+		// b_real_FP16  [0] = (-1.0**din_uni_b_sgn) * ((din_ML_expb==0)*1.0 + (din_ML_manb[ML_MANSIZE-2:0]*2.0**(-10.0))) * 2.0**(din_ML_expb-14.0);
+	
 		a_real_FP29i [0] = (1.0-2.0*din_uni_a_sgn) * din_AL_mana * 2.0**(-21.0) * 2**(din_AL_expa-31.0);
-		b_real_FP16i [0] = (1.0-2.0*din_uni_b_sgn) * din_ML_manb * 2.0**(-10.0) * 2**(din_ML_expb-15.0);
 		b_real_FP29i [0] = (1.0-2.0*din_uni_b_sgn) * din_AL_manb * 2.0**(-21.0) * 2**(din_AL_expb-31.0);
 		y_real_FP29i     = (1.0-2.0*dout_uni_y_sgn) * dout_uni_y_man_dn * 2.0**(-22.0 + dout_uni_y_exp - 31.0);
-		y_expected_ml = a_real_FP16_s5  * b_real_FP16i_s5;
+		y_expected_ml = a_real_FP16_s5  * b_real_FP16_s5;
 		y_expected_ad = a_real_FP29i_s5 + b_real_FP29i_s5;
 		many_expected_ml = din_ML_mana * din_ML_manb;
 		mul_k1 = y_real_FP29i / y_expected_ml;
 		mul_ik1 = 1/mul_k1;
-		mul_valid = ($abs(mul_k1)-1.0<0.0001);
+		mul_valid = ($abs(mul_k1)-1.0<0.00001)|(y_real_FP29i==y_expected_ml);
 		add_k1 = (y_real_FP29i / y_expected_ad);
-		add_valid = ($abs(add_k1)-1.0<0.0001);
+		add_valid = ($abs(add_k1)-1.0<0.00001);	// Notice: NaN from 0/0 can also result in add_valid
 	end
 
 	integer i;
@@ -120,12 +123,12 @@ end
 		for(i=3;i>0;i=i-1) begin
 			a_real_FP16 [i]  <= a_real_FP16 [i-1];
 			a_real_FP29i [i] <= a_real_FP29i [i-1];
-			b_real_FP16i [i] <= b_real_FP16i [i-1];
+			b_real_FP16 [i]  <= b_real_FP16 [i-1];
 			b_real_FP29i [i] <= b_real_FP29i [i-1];
 		end
 		a_real_FP16_s5  <= a_real_FP16[3];
 		a_real_FP29i_s5 <= a_real_FP29i[3];
-		b_real_FP16i_s5 <= b_real_FP16i[3];
+		b_real_FP16_s5  <= b_real_FP16[3];
 		b_real_FP29i_s5 <= b_real_FP29i[3];
 	end
 `endif /* DEBUGINFO */
@@ -183,7 +186,7 @@ end
 
 localparam  BR4SYM_SIZE = 3;		// Radix-4 Booth Symbol Size
 localparam  PPSIZE = ML_MANSIZE+1;
-wire [ML_MANSIZE+2:0] s1_br4enc_input = {2'b00, s1_ML_manb, 1'b0};
+wire [ML_MANSIZE+2:0] s1_br4enc_input = {2'b00, din_ML_manb, 1'b0};
 wire [(PPSIZE)*6-1:0]		    s1_br4_pp;	// BR4 Partial Products      (72bits)
 wire [5:0]                      s1_br4_s;	// BR4 Partial Product Signs (12bits)
 genvar gi;
@@ -191,7 +194,7 @@ generate
 	for(gi=0;gi<6;gi=gi+1) begin : gen_br4enc
 		// BR4 Partial Product Generator
 		booth_ppgen_r4 s1_u_br4ppgen (
-			.a(s1_ML_mana),
+			.a(din_ML_mana),
 			.br4(s1_br4enc_input[2*(gi+1):2*gi]),
 			.o(s1_br4_pp[PPSIZE*(gi+1)-1:PPSIZE*(gi)]),
 			.s(s1_br4_s[gi])
@@ -269,7 +272,7 @@ xchg #(.DWIDTH(AL_MANSIZE)) s2_u_manxchg(
 	.ob(s2_mmux2_rhs)
 );
 */
-wire [AL_MANSIZE-1:0] s2_mmux2_lhs = s2_mmux2_lhs;
+wire [AL_MANSIZE-1:0] s2_mmux2_lhs = s2_mmux_lhs_r;
 wire [AL_MANSIZE-1:0] s2_mmux2_rhs = s2_bsr_out_gated;
 
 wire [AL_MANSIZE:0]   s2_mmux3_rhs_addsub  = s2_addsubn_r ? s2_mmux2_rhs : ~s2_mmux2_rhs;
