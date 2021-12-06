@@ -45,11 +45,12 @@ initial begin
     #193.3125 clk_fast = 1;
     //#100000
 	// #10000000
-	#6420000
 	fp_output = $fopen("output.txt","w+");
     $dumpfile("W4823_FIR_tb.vcd");
     $dumpvars(0,W4823_FIR_tb);
-	#15000000
+	#6420000
+    // #15000000
+	#60000000
 	$fclose(fp_output);
 	$finish;
 end

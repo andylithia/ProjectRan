@@ -131,6 +131,7 @@ always @(posedge clk_fast or negedge rst_n) begin
 			if(cycle_cnt_r == SLEEP_LEN-1 ) begin
 				ss_r        <= `SA_RESERVED;
 				cycle_cnt_r <= 0;
+				first_cycle_r <= 0;
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
@@ -187,8 +188,9 @@ end
 
 wire cycle_dinlatch_n = ~cycle_dinlatch_pulse_r;
 always @(posedge ~clk_fast) begin
-	if(cycle_acc_thru) cmem_addr_r <= -1;
-	else if(cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) cmem_addr_r <= cmem_addr_r + 1;
+	if(cycle_acc_thru) cmem_addr_r <= 32;
+	else if(cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) 
+		cmem_addr_r <= cmem_addr_r + 1;
 end
 
 always @(negedge clk_fast) begin
@@ -486,7 +488,6 @@ always @(posedge alu_clk or posedge cycle_dinlatch) begin
 			dbg_alu_outrdy <= 1;
 	end
 end 
-
 `endif /* DEBUGINFO */
 
 endmodule /* W4823_FIR */
