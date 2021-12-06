@@ -248,6 +248,7 @@ end
 // when the zero has a larger exponent
 // Skip all subsequent operations, and use only RHS from the previous exchanger
 wire              s2_lhs_is_zero = ~(|s2_mmux_lhs_r);
+// wire s2_lhs_is_zero = 0;
 wire [OPSIZE-1:0] s2_opcode_mod;
   assign s2_opcode_mod = ((s2_opcode_r==OPC_ADD29i)&&s2_lhs_is_zero) ? OPC_ADDSKIP : s2_opcode_r;
 
@@ -477,7 +478,9 @@ end
 
 wire [31:0]          s5_bsl_out;					// The final shifter
 reg [AL_MANSIZE-1:0] s5_many_skip_r;
-always @(posedge clk) if(s4_opcode_r==OPC_ADDSKIP) s5_many_skip_r <= s4_many_r;
+always @(posedge clk) 
+	if(s4_opcode_r==OPC_ADDSKIP) 
+		s5_many_skip_r <= s4_many_r;
 bsl #(.SWIDTH(5)) s5_u_bsl (
 	.din    ({s5_many_r,9'b0}),
 	.s      (s5_shiftbias     ),
@@ -518,13 +521,24 @@ always @* begin
 		s5_sign_final   = (s5_addsubn_r)? s5_sa_r : s5_ea_lt_eb ^ s5_sa_r;
 		s5_many_final   = s5_bsl_out[31:10];
 	end else if (s5_opcode_r == OPC_MUL16i) begin	// MUL16i 
-		s5_expadj_final = s5_expadj_mul + 1 - s5_lzd_r;
-		s5_sign_final   = ~s5_addsubn_r;
-		s5_many_final   = s5_bsl_out[31:10];			
+		s5_many_final   = s5_bsl_out[31:10];
+		if((|s5_many_final)==0) begin
+			s5_expadj_final = 0;
+			s5_sign_final   = 0;
+		end else begin
+			s5_expadj_final = s5_expadj_mul + 1 - s5_lzd_r;
+			s5_sign_final   = ~s5_addsubn_r;
+		end
 	end else if (s5_opcode_r == OPC_ADDSKIP) begin	// Pass Thru
-		s5_expadj_final = {1'b0, s5_expadj_skip};
+
+		s5_expadj_final = {1'bx, s5_expadj_skip};
 		s5_sign_final   = s5_sign_skip;
 		s5_many_final   = s5_many_skip_r;
+	/*
+	s5_expadj_final = {6{1'bx}};
+	s5_many_final   = {22{1'bx}};
+	s5_sign_final   = 1'bx;
+	*/
 	end else begin									// ADD29i, Truncated & Normalized to FP16
 		s5_expadj_final = s5_expadj_add + 1 - s5_lzd_r - AL_EXPBIAS + ML_EXPBIAS;
 		s5_sign_final   = s5_sign_skip;

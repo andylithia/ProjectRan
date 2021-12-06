@@ -17,24 +17,15 @@ module FPALU_tb();
 	reg [1:0] opcode;
   
 	wire          din_uni_a_sgn    = a[28];
-	wire [5:0]    din_uni_a_exp    = {1'b0,a[27-1:22]}+10;
-	reg  [21:0]   din_uni_a_man_dn;
+	wire [5:0]    din_uni_a_exp    = a[27:22];
+	wire [21:0]   din_uni_a_man_dn = a[21:0];
 	wire          din_uni_b_sgn    = b[28];
-	wire [5:0]    din_uni_b_exp    = {1'b0,b[27-1:22]}+10;
-	reg  [21:0]   din_uni_b_man_dn;
+	wire [5:0]    din_uni_b_exp    = b[27:22];
+	wire [21:0]   din_uni_b_man_dn = b[21:0];
 	wire          dout_uni_y_sgn;
 	wire [5:0]    dout_uni_y_exp; 
 	wire [21:0]   dout_uni_y_man_dn;
 
-	always @* begin
-		if(opcode==2'b10) begin
-			din_uni_a_man_dn = a[21:0];
-			din_uni_b_man_dn = b[21:0];
-		end else begin
-			din_uni_a_man_dn = {1'b1,a[20:0]};	// Force norm
-			din_uni_b_man_dn = {1'b1,b[20:0]};	// Force norm
-		end
-	end	
 	reg [8:0] daddr;
 	reg [5:0] caddr;
 	wire [15:0] cin;
@@ -64,6 +55,7 @@ module FPALU_tb();
 	);
 	
 	integer i;
+	real dout_real;
 	initial begin
 		a = {$random};
 		b = {$random};
@@ -86,6 +78,7 @@ module FPALU_tb();
 			a = {din[15], 1'b0, din[14:10], 12'b0, din[9:0]};
 			b = {cin[15], 1'b0, cin[14:10], 12'b0, cin[9:0]};
 			#331 clk = 1;
+			dout_real = (1.0-2.0*dout_uni_y_sgn) * dout_uni_y_man_dn * 2.0**(-21.0 + dout_uni_y_exp - 31.0);
 		end
 
 		// Adder test

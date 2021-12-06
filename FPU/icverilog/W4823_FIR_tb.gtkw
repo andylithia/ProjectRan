@@ -1,17 +1,18 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Sun Dec  5 23:59:47 2021
+[*] Mon Dec  6 03:47:43 2021
 [*]
 [dumpfile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.vcd"
-[dumpfile_mtime] "Sun Dec  5 23:59:38 2021"
-[dumpfile_size] 53647715
+[dumpfile_mtime] "Mon Dec  6 03:38:40 2021"
+[dumpfile_size] 68092351
 [savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/W4823_FIR_tb.gtkw"
-[timestart] 393312500
+[timestart] 9650360000000
 [size] 1680 997
 [pos] 1 32
-*-41.306400 9700585937500 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-29.595711 9652734375000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] W4823_FIR_tb.
 [treeopen] W4823_FIR_tb.dut.
+[treeopen] W4823_FIR_tb.dut.u_fpalu.
 [sst_width] 193
 [signals_width] 448
 [sst_expanded] 1
@@ -41,7 +42,6 @@ W4823_FIR_tb.dut.dmem_addr_r[5:0]
 W4823_FIR_tb.dut.cmem_addr[5:0]
 @28
 W4823_FIR_tb.dut.first_cycle_r
-@29
 W4823_FIR_tb.dut.cmem_wr
 @10028
 W4823_FIR_tb.dut.u_fpalu.a_real_FP16_s5
@@ -104,12 +104,24 @@ W4823_FIR_tb.dut.u_fpalu.b_real_FP16_s5
 @22
 W4823_FIR_tb.dut.alu_a_29i[28:0]
 W4823_FIR_tb.dut.alu_b_29i[28:0]
+W4823_FIR_tb.dut.alumux_self_fp29i_r[28:0]
 @20000
 -
+@28
+W4823_FIR_tb.dut.u_fpalu.s5_opcode_r[1:0]
 @22
 W4823_FIR_tb.dut.alu_a_29i_r[28:0]
+@200
+-
+@22
 W4823_FIR_tb.dut.alu_b_29i_r[28:0]
+@200
+-
+@22
 W4823_FIR_tb.dut.alu_y_29i[28:0]
-W4823_FIR_tb.dut.alumux_self_fp29i_r[28:0]
+@201
+-
+@200
+-
 [pattern_trace] 1
 [pattern_trace] 0

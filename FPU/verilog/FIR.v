@@ -36,7 +36,7 @@ localparam S0_LOAD_LEN     = 1;
 localparam S1_MUL_NDAV_LEN = 4;
 localparam S2_MUL_LEN      = 59;
 localparam S3_ACC_THRU_LEN = 5;
-localparam S4_ACC_LEN      = 58;
+localparam S4_ACC_LEN      = 59;
 localparam S5_ACC_P1_LEN   = 5;
 localparam S6_ACC_P2_LEN   = 3;
 localparam S7_ACC_P3_LEN   = 1;
@@ -129,8 +129,13 @@ always @(posedge clk_fast or negedge rst_n) begin
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
-		`S7_ACC_P3: // Acc, BC Save
-			ss_r            <= `S8_ACC_P4;
+		`S7_ACC_P3: begin // Acc, BC Save
+			if(cycle_cnt_r == S7_ACC_P3_LEN-1) begin
+				ss_r            <= `S8_ACC_P4;
+				cycle_cnt_r     <= 0;
+			end else 
+				cycle_cnt_r <= cycle_cnt_r + 1'b1;
+		end
 		`S8_ACC_P4: begin // ADE + BC
 			if(cycle_cnt_r == S8_ACC_P4_LEN-1) begin
 				ss_r        <= `S9_SLEEP;
@@ -277,7 +282,7 @@ wire [FP29i_SIZE-1:0] regf_q_fp29i;	//
 // Mapping Din (FP16) to FPALU input
 wire [FP29i_SIZE-1:0] alumux_din_fp16;
 wire [FP29i_SIZE-1:0] alumux_dmem_fp16;
-wire [FP29i_SIZE-1:0] alumux_cmem_fp16i;
+wire [FP29i_SIZE-1:0] alumux_cmem_fp16;
 wire [FP29i_SIZE-1:0] alumux_self_fp29i; 
 wire [FP29i_SIZE-1:0] alumux_regf_fp29i;
 wire [FP29i_SIZE-1:0] alumux_acc_fp29i;
@@ -326,7 +331,7 @@ assign alumux_din_fp16   = {din_r[15],       1'bx, din_r[14:10],       {12{1'bx}
 assign alumux_dmem_fp16  = {dmem_q_fp16[15], 1'bx, dmem_q_fp16[14:10], {12{1'bx}}, dmem_q_fp16[9:0]}; 	// FP16
 assign alumux_self_fp29i = alu_y_29i;		// from the output,  FP29i
 // MUX of input B
-assign alumux_cmem_fp16i = {cmem_q_fp16[15], 1'bx, cmem_q_fp16[14:10], {12{1'bx}}, cmem_q_fp16[9:0]};	// FP16
+assign alumux_cmem_fp16  = {cmem_q_fp16[15], 1'bx, cmem_q_fp16[14:10], {12{1'bx}}, cmem_q_fp16[9:0]};	// FP16
 assign alumux_regf_fp29i = regf_q_fp29i;	// FP29i
 
 `ifdef DEBUGINFO
@@ -338,7 +343,7 @@ always @* begin
 	//       because these conditions are mutally exclusive
 	if(cycle_dinlatch|cycle_load) begin					// MUL16i First Cycle
 		alu_a_29i = alumux_din_fp16;	// latched
-		alu_b_29i = alumux_cmem_fp16i;	// 
+		alu_b_29i = alumux_cmem_fp16;	// 
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 0;
@@ -346,7 +351,7 @@ always @* begin
 	end
 	if(cycle_mul_ndav|cycle_mul) begin
 		alu_a_29i = alumux_dmem_fp16;	// Historic Data
-		alu_b_29i = alumux_cmem_fp16i;	// 
+		alu_b_29i = alumux_cmem_fp16;	// 
 		alu_opcode = 2'b10;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 1;
@@ -355,7 +360,7 @@ always @* begin
 	// ADD29i First 5 Cycles Feed-Thru
 	if(cycle_acc_thru) begin		
 		alu_a_29i = alumux_self_fp29i;	// Loop Back	
-		alu_b_29i = 29'b0;
+		alu_b_29i = {28'b0,1'b0};
 		alu_opcode = 2'b11;
 		`ifdef DEBUGINFO
 			dbg_alumux_state = 2;

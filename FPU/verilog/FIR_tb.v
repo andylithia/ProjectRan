@@ -54,8 +54,8 @@ initial begin
 	#6400000
 	record_begin = 1;
     // #15000000
-	#60000000
-	// #10000000
+	// #60000000
+	#10000000
 	$fclose(fp_output);
 	$finish;
 end
@@ -68,9 +68,8 @@ assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
 	always @(posedge clk_fast) begin
 		if(load_cmem_cnt_r<65) begin
 			if(cin[14:10]==0) $display("CIN DENORM @ %Xh", caddr);
-			caddr           <= caddr + 1;
-			load_cmem_cnt_r <= load_cmem_cnt_r + 1;
-			// Assuming 16bit FP16
+			caddr           = caddr + 1;
+			load_cmem_cnt_r = load_cmem_cnt_r + 1;
 		end
 	end
 	// Din Writer
@@ -84,8 +83,9 @@ assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
 			din_man_dn = {1'b1,din[9:0]};
 		din_real = (1.0-2.0*din[15]) * din_man_dn * 2.0**(-10.0) * 2.0**(din[14:10]-15.0);
 		
-		if(~rst_n) daddr <= 0;
-		else       daddr <= daddr + 1;
+		if(~rst_n)              daddr <= 0;
+		else if (daddr>=9'd499) daddr <= 0;
+		else                    daddr <= daddr + 1;
 	end
 	data_cmem_fp16 u_cmem_src(.a(caddr),.q(cin));
 	data_dmem_fp16 u_dmem_src(.a(daddr),.q(din));
@@ -102,8 +102,9 @@ assign cload = (~clk_fast) & (load_cmem_cnt_r<65);
 	// Din Writer
 	assign din = {7'b0011110,daddr};
 	always @(posedge clk_slow or negedge rst_n) begin
-		if(~rst_n) daddr <= 0;
-		else       daddr <= daddr + 1;
+		if(~rst_n)             daddr <= 0;
+		else if(daddr>=9'd499) daddr <= 0;
+		else                   daddr <= daddr + 1;
 	end
 `endif /* USE_REAL_DATA */
 
