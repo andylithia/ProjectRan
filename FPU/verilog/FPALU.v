@@ -93,17 +93,14 @@ end
 	real y_expected_ad;		// Reference Result of Addition
 	integer many_expected_ml;	
 
-	real mul_k1;
-	real mul_ik1;
-	reg  mul_valid;
-	real add_k1;
-	reg  add_valid; 
-	
 	real tm;
 	real ta;
-	always @* begin
-		a_real_FP16  [0] = (1.0-2.0*din_uni_a_sgn) * din_ML_mana * 2.0**(-10.0) * 2**(din_ML_expa-15.0);
-		b_real_FP16  [0] = (1.0-2.0*din_uni_b_sgn) * din_ML_manb * 2.0**(-10.0) * 2**(din_ML_expb-15.0);
+	reg  mul_valid;
+	reg  add_valid; 
+	
+	always @(*) begin
+		a_real_FP16  [0] = (1.0-2.0*din_uni_a_sgn) * din_ML_mana * 2.0**(-10.0) * 2.0**(din_ML_expa-15.0);
+		b_real_FP16  [0] = (1.0-2.0*din_uni_b_sgn) * din_ML_manb * 2.0**(-10.0) * 2.0**(din_ML_expb-15.0);
 		// a_real_FP16  [0] = (-1.0**din_uni_a_sgn) * ((din_ML_expa==0)*1.0 + (din_ML_mana[ML_MANSIZE-2:0]*2.0**(-10.0))) * 2.0**(din_ML_expa-14.0);
 		// b_real_FP16  [0] = (-1.0**din_uni_b_sgn) * ((din_ML_expb==0)*1.0 + (din_ML_manb[ML_MANSIZE-2:0]*2.0**(-10.0))) * 2.0**(din_ML_expb-14.0);
 	

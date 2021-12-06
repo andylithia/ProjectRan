@@ -32,7 +32,18 @@ reg [5:0]  ss_r;		// Control State Register
 reg [7:0]  cycle_cnt_r;
 reg        first_cycle_r;
 
-localparam SLEEP_LEN = 110;
+localparam S0_LOAD_LEN     = 1;
+localparam S1_MUL_NDAV_LEN = 4;
+localparam S2_MUL_LEN      = 59;
+localparam S3_ACC_THRU_LEN = 5;
+localparam S4_ACC_LEN      = 58;
+localparam S5_ACC_P1_LEN   = 5;
+localparam S6_ACC_P2_LEN   = 3;
+localparam S7_ACC_P3_LEN   = 1;
+localparam S8_ACC_P4_LEN   = 7;
+localparam S9_SLEEP_LEN    = 256-S0_LOAD_LEN-S1_MUL_NDAV_LEN-S2_MUL_LEN-S3_ACC_THRU_LEN-S4_ACC_LEN-S5_ACC_P1_LEN-S6_ACC_P2_LEN-S7_ACC_P3_LEN-S8_ACC_P4_LEN-SA_RESERVED_LEN-SB_DINLATCH_LEN;
+localparam SA_RESERVED_LEN = 1;
+localparam SB_DINLATCH_LEN = 1;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 //                      543210
@@ -70,49 +81,49 @@ always @(posedge clk_fast or negedge rst_n) begin
 	if(~rst_n) begin
 		// Sleep Away the First Cycle
 		ss_r          <= `S9_SLEEP;
-		cycle_cnt_r   <= SLEEP_LEN;
+		cycle_cnt_r   <= S9_SLEEP_LEN;
 		first_cycle_r <= 1'b1;
 	end else begin
 		case(ss_r)
 		`S0_LOAD:			// DMEM WR & MUL16i First Cycle
 			ss_r <= `S1_MUL_NDAV;
 		`S1_MUL_NDAV: begin	// MUL16i First 4 Cycles
-			if(cycle_cnt_r==8'd3) begin	
+			if(cycle_cnt_r==S1_MUL_NDAV_LEN-1) begin	
 				ss_r        <= `S2_MUL;
 				cycle_cnt_r <= 0;	
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		`S2_MUL: begin	// Constant MUL16i
-			if(cycle_cnt_r==8'd58) begin
+			if(cycle_cnt_r==S2_MUL_LEN-1) begin
 				ss_r        <= `S3_ACC_THRU;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		`S3_ACC_THRU: begin	// Acc Write Thru
-			if(cycle_cnt_r==8'd4) begin
+			if(cycle_cnt_r==S3_ACC_THRU_LEN-1) begin
 				ss_r        <= `S4_ACC;
 				cycle_cnt_r <= 0;
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		`S4_ACC: begin	// Penta ACC
-			if(cycle_cnt_r==8'd58) begin
+			if(cycle_cnt_r==S4_ACC_LEN-1) begin
 				ss_r        <= `S5_ACC_P1;
 				cycle_cnt_r <= 0;	
 			end else 
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		`S5_ACC_P1: begin // Acc A+E, C+B
-			if(cycle_cnt_r == 8'd4) begin
+			if(cycle_cnt_r == S5_ACC_P1_LEN-1) begin
 				ss_r        <= `S6_ACC_P2;
 				cycle_cnt_r <= 0; 
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		`S6_ACC_P2: begin // Acc AE+D,
-			if(cycle_cnt_r == 8'd2) begin
+			if(cycle_cnt_r == S6_ACC_P2_LEN-1) begin
 				ss_r        <= `S7_ACC_P3;
 				cycle_cnt_r <= 0;
 			end else
@@ -121,14 +132,14 @@ always @(posedge clk_fast or negedge rst_n) begin
 		`S7_ACC_P3: // Acc, BC Save
 			ss_r            <= `S8_ACC_P4;
 		`S8_ACC_P4: begin // ADE + BC
-			if(cycle_cnt_r == 8'd6) begin
+			if(cycle_cnt_r == S8_ACC_P4_LEN-1) begin
 				ss_r        <= `S9_SLEEP;
 				cycle_cnt_r <= 0;
 			end else
 				cycle_cnt_r <= cycle_cnt_r + 1'b1;
 		end
 		`S9_SLEEP: begin
-			if(cycle_cnt_r == SLEEP_LEN-1 ) begin
+			if(cycle_cnt_r == S9_SLEEP_LEN-1 ) begin
 				ss_r        <= `SA_RESERVED;
 				cycle_cnt_r <= 0;
 				first_cycle_r <= 0;
@@ -188,7 +199,7 @@ end
 
 wire cycle_dinlatch_n = ~cycle_dinlatch_pulse_r;
 always @(posedge ~clk_fast) begin
-	if(cycle_acc_thru) cmem_addr_r <= 32;
+	if(cycle_acc_thru) cmem_addr_r <= -1;
 	else if(cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) 
 		cmem_addr_r <= cmem_addr_r + 1;
 end

@@ -31,6 +31,7 @@ always @(posedge clk_fast or negedge rst_n) begin
    else       clk_div = clk_div + 1'b1; 
 end
 
+reg record_begin;
 integer fp_output;
 initial begin
     rst_n = 1;
@@ -39,6 +40,7 @@ initial begin
 	caddr = 0;
 	daddr = 0;
 	load_cmem_cnt_r = 0;
+	record_begin = 0;
 
     #100 rst_n = 0;
     #100 rst_n = 1;
@@ -48,9 +50,12 @@ initial begin
 	fp_output = $fopen("output.txt","w+");
     $dumpfile("W4823_FIR_tb.vcd");
     $dumpvars(0,W4823_FIR_tb);
-	#6420000
+
+	#6400000
+	record_begin = 1;
     // #15000000
 	#60000000
+	// #10000000
 	$fclose(fp_output);
 	$finish;
 end
@@ -119,10 +124,11 @@ W4823_FIR dut (
 
 real dout_real;
 always @(posedge clk_fast) begin
-	if(clk_div==8'h12) begin
-		dout_real = (1.0-2.0*dout_raw[28]) * dout_raw[21:0] * 2.0**(-21.0 + dout_raw[27:22] - 31.0);
-		$fwrite(fp_output,"%e\n",dout_real);
-	end
+	if(record_begin)
+		if(clk_div==8'h12) begin
+			dout_real = (1.0-2.0*dout_raw[28]) * dout_raw[21:0] * 2.0**(-21.0 + dout_raw[27:22] - 31.0);
+			$fwrite(fp_output,"%e\n",dout_real);
+		end
 end
 
 
