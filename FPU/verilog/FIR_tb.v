@@ -54,8 +54,8 @@ initial begin
 	#6400000
 	record_begin = 1;
     // #15000000
-	// #60000000
-	#10000000
+	#60000000
+	// #10000000
 	$fclose(fp_output);
 	$finish;
 end
@@ -119,6 +119,7 @@ W4823_FIR dut (
     .cin      (cin     ),
     .caddr    (caddr   ),
     .cload    (cload   ),
+	.dout     (        ),
     .dout_29i (dout_raw),
     .valid    (        )
 );

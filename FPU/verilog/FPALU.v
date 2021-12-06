@@ -151,7 +151,6 @@ end
 	end
 `endif /* DEBUGINFO */
 
-
 // +------------------------------------+
 // |          PIPELINE STAGE 1          |
 // +------------------------------------+
@@ -187,7 +186,6 @@ xchg #(.DWIDTH(AL_MANSIZE)) s1_u_manxchg(
 );
 
 // MULTIPLIER: Booth Encoder
-
 localparam  PPSIZE = ML_MANSIZE+1;
 wire [ML_MANSIZE+2:0] s1_br4enc_input = {2'b00, din_ML_manb, 1'b0};
 wire [(PPSIZE)*6-1:0]		    s1_br4_pp;	// BR4 Partial Products      (72bits)
@@ -250,10 +248,11 @@ end
 wire              s2_lhs_is_zero = ~(|s2_mmux_lhs_r);
 // wire s2_lhs_is_zero = 0;
 wire [OPSIZE-1:0] s2_opcode_mod;
-  assign s2_opcode_mod = ((s2_opcode_r==OPC_ADD29i)&&s2_lhs_is_zero) ? OPC_ADDSKIP : s2_opcode_r;
+assign s2_opcode_mod = ((s2_opcode_r==OPC_ADD29i)&&s2_lhs_is_zero) ? OPC_ADDSKIP : s2_opcode_r;
 
 // ADDER: Shifter
 // When shifting by [MSB], the output becomes zero
+/*
 wire [31:0]	s2_bsr_out;
 wire [AL_MANSIZE-1:0] s2_bsr_out_gated = s2_ea_sub_eb_abs_r[AL_EXPSIZE-1]  ? {AL_MANSIZE{1'b0}} : s2_bsr_out[31:32-AL_MANSIZE];
 bsr #(.SWIDTH(AL_EXPSIZE-1)) s2_u_bsr(
@@ -262,6 +261,8 @@ bsr #(.SWIDTH(AL_EXPSIZE-1)) s2_u_bsr(
 	.filler(1'b0),
 	.dout(s2_bsr_out)
 );
+*/
+wire [AL_MANSIZE-1:0] s2_bsr_out_gated = s2_mmux_rhs_r >> s2_ea_sub_eb_abs_r;
 // L: s2_mmux_lhs_r, R: s2_bsr_out_gated
 
 // ADDER: ADDSUB Inverter
@@ -360,7 +361,7 @@ end
 reg [AL_MANSIZE:0]   s3_alumux_lhs;	// 23bits (sign extended)
 reg [AL_MANSIZE:0]   s3_alumux_rhs;	// 23bits (sign extended)
 reg                  s3_alumux_cin;	// 
-wire [AL_MANSIZE:0]  s3_alu_out;
+wire [31:0]  s3_alu_out;
 reg [1:0] dbg_s3_alumux_state;
 always @(*) begin
 	if(s3_opcode_r==OPC_ADD29i) begin
@@ -384,9 +385,9 @@ always @(*) begin
 	end
 end
 
-cla_adder #(.DATA_WID(AL_MANSIZE+1)) s3_s4_u_cla(
-	.in1      (s3_alumux_lhs),
-	.in2      (s3_alumux_rhs),
+cla_adder #(.DATA_WID(32)) s3_s4_u_cla(
+	.in1      ({{9{s3_alumux_lhs[AL_MANSIZE]}},s3_alumux_lhs}),
+	.in2      ({{9{s3_alumux_rhs[AL_MANSIZE]}},s3_alumux_rhs}),
 	.carry_in (s3_alumux_cin),
 	.sum      (s3_alu_out   ),
 	.carry_out(             )	// Discarded
@@ -394,10 +395,11 @@ cla_adder #(.DATA_WID(AL_MANSIZE+1)) s3_s4_u_cla(
 
 // ADDER: Denorm Zero: Bypass Path
 reg [AL_MANSIZE:0] s3_mmux_y;
+wire s3_alu_of = s3_alu_out[AL_MANSIZE+1];
 always @* begin
 	case(s3_opcode_r) 
 	OPC_ADDSKIP:	s3_mmux_y = s3_lhs_r;
-	OPC_ADD29i:		s3_mmux_y = s3_alu_out;
+	OPC_ADD29i:		s3_mmux_y = s3_alu_out[AL_MANSIZE:0];
 	OPC_MUL16i:		s3_mmux_y = {1'b0,s3_alu_out[AL_MANSIZE-1:0]};
 	endcase
 end
@@ -424,10 +426,19 @@ reg                  s4_ea_gte_eb_r;
 reg                  s4_addsubn_r;	// Used to calculate sign
 reg                  s4_sa_r;
 reg                  s4_sb_r;
+reg                  s4_flipsign_r;
 always @(posedge clk) begin
-	s4_many_r      <= s3_mmux_y;
-	if(s3_opcode_r!=OPC_ADDSKIP)
-		s4_lzdi_r  <= s3_mmux_y;
+	if((s3_opcode_r==OPC_ADD29i) && s3_alu_of)  begin
+		s4_flipsign_r <= 1;
+		s4_lzdi_r     <= ~s3_mmux_y + 1'b1;
+	end else begin
+		s4_flipsign_r <= 0;
+		if(s3_opcode_r!=OPC_ADDSKIP)
+			s4_lzdi_r     <= s3_mmux_y;
+	end
+	s4_many_r <= s3_mmux_y;
+	//if(s3_opcode_r!=OPC_ADDSKIP)
+	//	s4_lzdi_r  <= s3_mmux_y;
 	s4_opcode_r    <= s3_opcode_r;
 	s4_ea_r        <= s3_ea_r;
 	s4_eb_r        <= s3_eb_r;
@@ -453,11 +464,13 @@ reg [OPSIZE-1:0]     s5_opcode_r;
 reg                  s5_addsubn_r;	// Used to calculate sign
 reg                  s5_sa_r;
 reg                  s5_sb_r;
+reg                  s5_flipsign_r;
 always @(posedge clk) begin
 	s5_opcode_r  <= s4_opcode_r;
 	s5_addsubn_r <= s4_addsubn_r;
 	s5_sa_r      <= s4_sa_r;
 	s5_sb_r      <= s4_sb_r;
+	s5_flipsign_r<= s4_flipsign_r;
 end
 
 // UNIFIED: Final Shifter
@@ -465,17 +478,18 @@ reg [AL_MANSIZE:0] s5_many_r;
 reg [4:0]          s5_lzd_r;
 reg [4:0]          s5_shiftbias;
 always @(posedge clk) begin
-	s5_many_r    <= s4_many_r;
+	s5_many_r    <= s4_lzdi_r;
 	s5_lzd_r     <= s4_lzd;
 end
-
+/*
 always @* begin
 	if(s5_opcode_r==OPC_ADD29NORM)
 		s5_shiftbias = s5_lzd_r + 1'b1;	// Also remove the hidden 1
 	else
 		s5_shiftbias = s5_lzd_r;		// Denorm (Default)
 end
-
+*/
+always @* s5_shiftbias = s5_lzd_r;
 wire [31:0]          s5_bsl_out;					// The final shifter
 reg [AL_MANSIZE-1:0] s5_many_skip_r;
 always @(posedge clk) 
@@ -518,7 +532,7 @@ wire   s5_sign_skip   = s5_ea_gte_eb_r ?  s5_sb_r : s5_sa_r;
 always @* begin
 	if(s5_opcode_r == OPC_ADD29i) begin				// ADD29i
 		s5_expadj_final = s5_expadj_add + 1 - s5_lzd_r;
-		s5_sign_final   = (s5_addsubn_r)? s5_sa_r : s5_ea_lt_eb ^ s5_sa_r;
+		s5_sign_final   = ((s5_addsubn_r)? s5_sa_r : s5_ea_lt_eb ^ s5_sa_r) ^ s5_flipsign_r;
 		s5_many_final   = s5_bsl_out[31:10];
 	end else if (s5_opcode_r == OPC_MUL16i) begin	// MUL16i 
 		s5_many_final   = s5_bsl_out[31:10];

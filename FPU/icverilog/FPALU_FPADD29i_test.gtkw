@@ -1,19 +1,19 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Mon Dec  6 02:22:20 2021
+[*] Mon Dec  6 06:49:06 2021
 [*]
 [dumpfile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/dump.vcd"
-[dumpfile_mtime] "Mon Dec  6 02:20:13 2021"
-[dumpfile_size] 770160
+[dumpfile_mtime] "Mon Dec  6 06:45:41 2021"
+[dumpfile_size] 858726
 [savefile] "/Users/andylithia/Github/ProjectRan/FPU/icverilog/FPALU_FPADD29i_test.gtkw"
-[timestart] 331000000
+[timestart] 211695000000
 [size] 1680 997
 [pos] 0 25
-*-32.353367 6400000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-30.353367 215522000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] FPALU_tb.
 [treeopen] FPALU_tb.dut.
 [sst_width] 193
-[signals_width] 321
+[signals_width] 506
 [sst_expanded] 1
 [sst_vpaned_height] 306
 @28
@@ -111,8 +111,6 @@ FPALU_tb.dout_uni_y_man_dn[21:0]
 FPALU_tb.dut.s5_many_r[22:0]
 @22
 FPALU_tb.dut.s4_lzd[4:0]
-@24
-FPALU_tb.dut.s3_alu_out[22:0]
 @200
 -
 @28
@@ -120,6 +118,8 @@ FPALU_tb.dut.s3_alumux_rhs[22:0]
 FPALU_tb.dut.s3_alumux_lhs[22:0]
 @420
 FPALU_tb.dut.s5_expadj_final[6:0]
+@28
+FPALU_tb.dut.s5_many_r[22:0]
 @200
 -vvvvv Compare
 @10028
@@ -127,10 +127,41 @@ FPALU_tb.dut.a_real_FP16_s5
 @20000
 -
 -
-@10029
+@10028
 FPALU_tb.dut.b_real_FP16_s5
 @20000
 -
+@28
+FPALU_tb.dut.din_uni_a_sgn
+FPALU_tb.dut.din_uni_b_sgn
+@24
+FPALU_tb.dut.s2_ea_sub_eb_abs_r[5:0]
+FPALU_tb.dut.s2_mmux_lhs_r[21:0]
+FPALU_tb.dut.s2_mmux_rhs_r[21:0]
+FPALU_tb.dut.s2_mmux2_lhs[21:0]
+FPALU_tb.dut.s2_mmux2_rhs[21:0]
+@420
+FPALU_tb.dut.s2_mmux3_lhs_addsub[22:0]
+FPALU_tb.dut.s2_mmux3_rhs_addsub[22:0]
+FPALU_tb.dut.s3_alu_out[31:0]
+@28
+FPALU_tb.dut.s3_mmux_y[22:0]
+@29
+FPALU_tb.dut.s4_lzdi[31:0]
+@22
+FPALU_tb.dut.s4_lzd[4:0]
+@28
+FPALU_tb.dut.s5_many_r[22:0]
+FPALU_tb.dut.s5_many_final[21:0]
+FPALU_tb.dut.s3_alumux_lhs[22:0]
+FPALU_tb.dut.s3_alumux_rhs[22:0]
+@22
+FPALU_tb.dut.s5_ea_r[5:0]
+FPALU_tb.dut.s5_eb_r[5:0]
+FPALU_tb.dut.s5_expadj_final[6:0]
+@28
+FPALU_tb.dut.s3_alu_of
+@20000
 -
 @28
 FPALU_tb.dut.a_real_FP29i_s5
