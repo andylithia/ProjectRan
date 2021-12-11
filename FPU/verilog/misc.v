@@ -205,3 +205,23 @@ module booth_ppgen_r4 #(
 		endcase
 	end
 endmodule /* booth_ppgen_r4 */
+
+module compl2s #(
+	parameter DWIDTH = 32
+)(
+	input [DWIDTH-1:0]		a,
+	input					bypass,
+	output [DWIDTH-1:0]		y
+);
+	wire [DWIDTH-1:0]  s;
+	assign s[0] = 0;
+	assign y[0] = a[0];
+	genvar gi;
+	generate
+		for(gi=1;gi<DWIDTH;gi=gi+1) begin : gen_2scompl_mux
+			assign s[gi] = a[gi-1] || s[gi-1];
+			assign y[gi] = bypass ? a[gi] : ((s[gi]) ? !a[gi] : a[gi]);
+		end
+	endgenerate
+
+endmodule /* compl2s */

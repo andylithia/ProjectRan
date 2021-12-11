@@ -396,6 +396,7 @@ cla_adder #(.DATA_WID(32)) s3_s4_u_cla(
 // ADDER: Denorm Zero: Bypass Path
 reg [AL_MANSIZE:0] s3_mmux_y;
 wire s3_alu_of = s3_alu_out[AL_MANSIZE+1];
+// wire s3_alu_of = 0;
 always @* begin
 	case(s3_opcode_r) 
 	OPC_ADDSKIP:	s3_mmux_y = s3_lhs_r;
@@ -430,15 +431,13 @@ reg                  s4_flipsign_r;
 always @(posedge clk) begin
 	if((s3_opcode_r==OPC_ADD29i) && s3_alu_of)  begin
 		s4_flipsign_r <= 1;
-		s4_lzdi_r     <= ~s3_mmux_y + 1'b1;
+		// s4_lzdi_r     <= ~s3_mmux_y + 1'b1;
 	end else begin
 		s4_flipsign_r <= 0;
-		if(s3_opcode_r!=OPC_ADDSKIP)
-			s4_lzdi_r     <= s3_mmux_y;
+		// if(s3_opcode_r!=OPC_ADDSKIP)
+		// 	s4_lzdi_r     <= s3_mmux_y;
 	end
-	s4_many_r <= s3_mmux_y;
-	//if(s3_opcode_r!=OPC_ADDSKIP)
-	//	s4_lzdi_r  <= s3_mmux_y;
+	s4_many_r      <= s3_mmux_y;
 	s4_opcode_r    <= s3_opcode_r;
 	s4_ea_r        <= s3_ea_r;
 	s4_eb_r        <= s3_eb_r;
@@ -447,11 +446,22 @@ always @(posedge clk) begin
 	s4_sa_r        <= s3_sa_r;
 	s4_sb_r        <= s3_sb_r;
 end
-  
+
+wire [AL_MANSIZE:0] s4_lzdi_fp;
+// Rely on the optimizer to simplify this CLA
+cla_adder #(.DATA_WID(AL_MANSIZE+1)) s4_u_compl2(
+	.in1      (s4_flipsign_r ? ~ s4_many_r : s4_many_r),
+	.in2      ({AL_MANSIZE+1{1'b0}}),
+	.carry_in (s4_flipsign_r),
+	.sum      (s4_lzdi_fp   ),
+	.carry_out(             )	// Discarded
+);
+// wire s4_fuk = s4_lzdi_r == s4_lzdi_fp;
 // aluout is 23bits
 // UNIFIED: Leading Zero Detect:
 wire [4:0]  s4_lzd;		// 
-wire [31:0] s4_lzdi = {s4_lzdi_r,9'b0};
+wire [31:0] s4_lzdi = {s4_lzdi_fp,9'b0};
+// wire [31:0] s4_lzdi = {s4_lzdi_r,9'b0};
 count_lead_zero #(.W_IN(32)) s4_u_lzd(.in(s4_lzdi), .out(s4_lzd));
 
 // +------------------------------------+
@@ -478,7 +488,7 @@ reg [AL_MANSIZE:0] s5_many_r;
 reg [4:0]          s5_lzd_r;
 reg [4:0]          s5_shiftbias;
 always @(posedge clk) begin
-	s5_many_r    <= s4_lzdi_r;
+	s5_many_r    <= s4_lzdi_fp;
 	s5_lzd_r     <= s4_lzd;
 end
 /*
@@ -536,7 +546,7 @@ always @* begin
 		s5_many_final   = s5_bsl_out[31:10];
 	end else if (s5_opcode_r == OPC_MUL16i) begin	// MUL16i 
 		s5_many_final   = s5_bsl_out[31:10];
-		if((|s5_many_final)==0) begin
+		if((|s5_many_final)==0) begin	// Deal with zero
 			s5_expadj_final = 0;
 			s5_sign_final   = 0;
 		end else begin
@@ -548,11 +558,7 @@ always @* begin
 		s5_expadj_final = {1'bx, s5_expadj_skip};
 		s5_sign_final   = s5_sign_skip;
 		s5_many_final   = s5_many_skip_r;
-	/*
-	s5_expadj_final = {6{1'bx}};
-	s5_many_final   = {22{1'bx}};
-	s5_sign_final   = 1'bx;
-	*/
+
 	end else begin									// ADD29i, Truncated & Normalized to FP16
 		s5_expadj_final = s5_expadj_add + 1 - s5_lzd_r - AL_EXPBIAS + ML_EXPBIAS;
 		s5_sign_final   = s5_sign_skip;
@@ -564,6 +570,56 @@ end
 assign dout_uni_y_exp    = s5_expadj_final[AL_EXPSIZE-1:0];
 assign dout_uni_y_sgn    = s5_sign_final;
 assign dout_uni_y_man_dn = s5_many_final;
+
+/*
+// Skip is caused by 0 with large exp, Use the one with smaller Exp here
+wire [AL_EXPSIZE:0]   s5_expadj_skip;
+wire [AL_EXPSIZE:0]   s5_expadj_mul;
+wire [AL_EXPSIZE:0]   s5_expadj_add;
+reg  [AL_EXPSIZE:0]   s5_expadj_final;
+reg                   s5_sign_final;
+reg [AL_MANSIZE-1:0]  s5_many_final;
+// MULTIPLY: Re-bias exponents to AL_EXPBIAS
+assign s5_expadj_mul  = {1'b0,s5_ea_r} + {1'b0,s5_eb_r} - 2*ML_EXPBIAS + AL_EXPBIAS + 1;
+// ADDER: Use the larger exponent
+assign s5_expadj_add  = s5_ea_gte_eb_r ?  {1'b0,s5_ea_r} : {1'b0,s5_eb_r};
+assign s5_expadj_skip = s5_ea_gte_eb_r ?  {1'b0,s5_eb_r} : {1'b0,s5_ea_r};
+wire   s5_sign_skip   = s5_ea_gte_eb_r ?  s5_sb_r : s5_sa_r;
+// assign dout_uni_y_man_dn = (s5_opcode_r==OPC_ADDSKIP) ? s5_many_skip_r : s5_bsl_out[31:10];	// Truncate to 22 bits
+
+always @* begin
+	if(s5_opcode_r == OPC_ADD29i) begin				// ADD29i
+		s5_expadj_final = s5_expadj_add;
+		s5_sign_final   = ((s5_addsubn_r)? s5_sa_r : s5_ea_lt_eb ^ s5_sa_r) ^ s5_flipsign_r;
+		s5_many_final   = s5_many_r;
+	end else if (s5_opcode_r == OPC_MUL16i) begin	// MUL16i 
+		s5_many_final   = s5_many_r;
+		if((|s5_many_final)==0) begin
+			s5_expadj_final = 0;
+			s5_sign_final   = 0;
+		end else begin
+			s5_expadj_final = s5_expadj_mul;
+			s5_sign_final   = ~s5_addsubn_r;
+		end
+	end else if (s5_opcode_r == OPC_ADDSKIP) begin	// Pass Thru
+
+		s5_expadj_final = {1'bx, s5_expadj_skip};
+		s5_sign_final   = s5_sign_skip;
+		s5_many_final   = s5_many_skip_r;
+
+	end else begin									// ADD29i, Truncated & Normalized to FP16
+		s5_expadj_final = s5_expadj_add - AL_EXPBIAS + ML_EXPBIAS;
+		s5_sign_final   = s5_sign_skip;
+		s5_many_final   = {12'b0,s5_many_r[32-1-1:32-10-1]};
+	end	
+end
+
+// TODO: Deal with exponent overflow using the extra bit
+assign dout_uni_y_exp    = s5_expadj_final[AL_EXPSIZE-1:0];
+assign dout_uni_y_sgn    = s5_sign_final;
+assign dout_uni_y_man_dn = s5_many_final;
+*/
+
 
 endmodule /* FPALU */
 
