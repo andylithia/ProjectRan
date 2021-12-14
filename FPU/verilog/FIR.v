@@ -216,41 +216,38 @@ end
 
 wire alu_clk_en = ~cycle_sleep;
 wire alu_clk;
-// To remove clock hazard in DMEM clock gating
-// Without this, the last cycle may end 1/2 clock period earlier
-reg cycle_mul_dly1_r;
-wire cycle_mul_neg = ~cycle_mul;
-always @(posedge alu_clk or negedge cycle_mul_neg) begin
-	if(~cycle_mul_neg)        cycle_mul_dly1_r <= 1;
-	else                 cycle_mul_dly1_r <= 0;
-end
-
 assign din_latch = cycle_dinlatch_pulse_r;
 assign dmem_clk_en = (cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul);
 // Truncated, loops back automatically when dmem_addr_r >= 64;
-
 always @(negedge clk_fast or negedge rst_n) begin
-	if(~rst_n)	dmem_addr_r <= 0;
+	if(~rst_n)	         dmem_addr_r <= 0;
 	else if(dmem_clk_en) dmem_addr_r <= dmem_addr_r + 1;
 end
 
 // Clock Gating
-//
 `ifdef USE_VENDOR_CGC
 	// Don't care, when using ibm13rflpvt, DC automatically compiles
 	//  cgc into TLATNCA
 `else
 	icgc u_cgc_cmem(.CK(clk_fast),.E(first_cycle_r|dmem_clk_en),.ECK(cmem_clk));
-	// icgc u_cgc_alu(.CK(clk_fast),.E(alu_clk_en), .ECK(alu_clk));
-	assign alu_clk = clk_fast & alu_clk_en;
-	assign dmem_clk  = dmem_clk_en & clk_fast;	// DMEM Clock
+	assign alu_clk  = clk_fast & alu_clk_en;
+	assign dmem_clk = dmem_clk_en & clk_fast;	// DMEM Clock
 
 `endif /* USE_VENDOR_CGC */
 
 // +--------------------------------------+
 // |     Part 3. REGFile Data Control     |
 // +--------------------------------------+
-// 
+
+// To remove clock hazard in DMEM clock gating
+// Without this, the last cycle may end 1/2 clock period earlier
+reg cycle_mul_dly1_r;
+wire cycle_mul_neg = ~cycle_mul;	// Written in this way to remove hold violation 
+always @(posedge alu_clk or negedge cycle_mul_neg) begin
+	if(~cycle_mul_neg)   cycle_mul_dly1_r <= 1;
+	else                 cycle_mul_dly1_r <= 0;
+end
+ 
 reg          regf_wr_r;
 reg [5:0]    regf_addr_r;
 wire regf_clken    = (regf_wr_r|cycle_acc_thru|cycle_acc);
@@ -273,6 +270,7 @@ end
 // +------------------------------+
 // |     Part 3. ALU Data MUX     |
 // +------------------------------+
+// 
 // 
 localparam FP29i_SIZE = 29;
 localparam FP16_SIZE  = 16;
@@ -339,6 +337,8 @@ assign alumux_regf_fp29i = regf_q_fp29i;	// FP29i
 integer dbg_alumux_state;
 `endif /* DEBUGINFO */
 always @* begin
+	alu_a_29i = 0;	// To remove latch
+	alu_b_29i = 0;	//	/
 	alu_opcode = 2'bxx;		// Default (doing nothing, can be any value)
 	// Note: all conditions are if... if... rather than if... else if...
 	//       because these conditions are mutally exclusive
