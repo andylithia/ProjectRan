@@ -3,6 +3,9 @@ source -verbose "../common_script/common.tcl"
 #analyze -format verilog -library work ../../verilog/misc.v
 #analyze -format verilog -library work ../../verilog/sp_sram.v
 #read_verilog {../../verilog/FPALU.v}
+
+analyze -format verilog -library work ../../verilog/icgc.v
+analyze -format verilog -library work ./FPALU.nl.v
 read_verilog {../../verilog/FIR.v}
 
 set set_fix_multiple_port_nets "true"

@@ -51,10 +51,11 @@ initial begin
     $dumpfile("W4823_FIR_tb.vcd");
     $dumpvars(0,W4823_FIR_tb);
 
-	#6400000
+	// #6400000
 	record_begin = 1;
+	#150000
     // #15000000
-	#60000000
+	// #60000000
 	// #10000000
 	$fclose(fp_output);
 	$finish;

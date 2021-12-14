@@ -1,0 +1,10 @@
+# Current time Mon Dec 13 15:50:48 2021
+# Program = vish
+# Id = "10.7b_1"
+# Version = "2018.07"
+# Date = "Jul 26 2018"
+# Platform = "linux"
+# 0    0xf7e3caed: 'XCloseIM + 0x1d' in '/lib/libX11.so.6'
+# 1    0xfffffffb: '<unknown (@0xfffffffb)>'
+# End of Stack Trace
+

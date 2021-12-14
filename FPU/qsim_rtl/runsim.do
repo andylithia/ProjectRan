@@ -7,12 +7,14 @@ vlib work
 vmap work work
 
 # Include Netlist and Testbench
+vlog +acc -incr /courses/ee6321/share/ibm13rflpvt/verilog/ibm13rflpvt.v
 vlog +acc -incr ../verilog/misc.v
 # vlog +acc -incr ../verilog/FPALU_dummy.v
 # vlog +acc -incr ../verilog/sp_sram.v
 vlog +acc -incr ../verilog/Constants/data_cmem_fp16.v
 vlog +acc -incr ../verilog/Constants/data_dmem_fp16.v
-vlog +acc -incr ../verilog/FPALU.v
+# vlog +acc -incr ../verilog/FPALU.v
+vlog +acc -incr ../dc/FIR/FPALU.nl.v
 vlog +acc -incr ../../../../mem_comp/SP_CMEM/SP_CMEM.v
 vlog +acc -incr ../../../../mem_comp/SP_DMEM/SP_DMEM.v
 vlog +acc -incr ../../../../mem_comp/SP_REGFile/SP_REGF.v
@@ -20,6 +22,7 @@ vlog +acc -incr ../verilog/icgc.v
 vlog +acc -incr ../verilog/FIR.v
 vlog +acc -incr ../verilog/FIR_tb.v
 
+vsim -voptargs=+acc -t ns -lib work -sdftyp dut/u_fpalu=../dc/FIR/FPALU.syn.sdf
 
 # Run Simulator 
 vsim +acc -t ns -lib work W4823_FIR_tb

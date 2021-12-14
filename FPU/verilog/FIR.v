@@ -41,9 +41,9 @@ localparam S5_ACC_P1_LEN   = 5;
 localparam S6_ACC_P2_LEN   = 3;
 localparam S7_ACC_P3_LEN   = 1;
 localparam S8_ACC_P4_LEN   = 7;
-localparam S9_SLEEP_LEN    = 256-S0_LOAD_LEN-S1_MUL_NDAV_LEN-S2_MUL_LEN-S3_ACC_THRU_LEN-S4_ACC_LEN-S5_ACC_P1_LEN-S6_ACC_P2_LEN-S7_ACC_P3_LEN-S8_ACC_P4_LEN-SA_RESERVED_LEN-SB_DINLATCH_LEN;
 localparam SA_RESERVED_LEN = 1;
 localparam SB_DINLATCH_LEN = 1;
+localparam S9_SLEEP_LEN    = 256-S0_LOAD_LEN-S1_MUL_NDAV_LEN-S2_MUL_LEN-S3_ACC_THRU_LEN-S4_ACC_LEN-S5_ACC_P1_LEN-S6_ACC_P2_LEN-S7_ACC_P3_LEN-S8_ACC_P4_LEN-SA_RESERVED_LEN-SB_DINLATCH_LEN;
 
 // Note: cycle_* dictates the current state at the INPUT OF ALU
 //                      543210
@@ -203,7 +203,7 @@ always @(posedge cycle_dinlatch) begin
 end
 
 wire cycle_dinlatch_n = ~cycle_dinlatch_pulse_r;
-always @(posedge ~clk_fast) begin
+always @(posedge clk_fast_n) begin
 	if(cycle_acc_thru) cmem_addr_r <= -1;
 	else if(cycle_dinlatch|cycle_load|cycle_mul_ndav|cycle_mul) 
 		cmem_addr_r <= cmem_addr_r + 1;
@@ -219,8 +219,9 @@ wire alu_clk;
 // To remove clock hazard in DMEM clock gating
 // Without this, the last cycle may end 1/2 clock period earlier
 reg cycle_mul_dly1_r;
-always @(posedge alu_clk) begin
-	if(cycle_mul)        cycle_mul_dly1_r <= 1;
+wire cycle_mul_neg = ~cycle_mul;
+always @(posedge alu_clk or negedge cycle_mul_neg) begin
+	if(~cycle_mul_neg)        cycle_mul_dly1_r <= 1;
 	else                 cycle_mul_dly1_r <= 0;
 end
 

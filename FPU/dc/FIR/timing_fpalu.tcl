@@ -7,7 +7,7 @@
 
 # Setting variables 
 #set clk_period 390
-set clk_period 2
+set clk_period 390
 set clk_uncertainty 0
 set clk_transition 0.010
 set typical_input_delay 0.05
