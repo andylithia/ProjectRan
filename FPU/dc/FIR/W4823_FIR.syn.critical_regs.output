@@ -1,3 +1,4 @@
+Warning: There are infeasible paths detected in your design that were ignored during optimization. Please run 'report_timing -attributes' and/or 'create_qor_snapshot/query_qor_snapshot -infeasible_paths' to identify these paths.  (OPT-1721)
  
 ****************************************
 Report : timing
@@ -7,7 +8,7 @@ Report : timing
         -sort_by slack
 Design : W4823_FIR
 Version: O-2018.06-SP5-1
-Date   : Tue Dec 14 18:18:38 2021
+Date   : Tue Dec 14 19:11:32 2021
 ****************************************
 
 Operating Conditions: tt_1p2v_25c   Library: scx3_cmos8rf_lpvt_tt_1p2v_25c
@@ -15,51 +16,51 @@ Wire Load Model Mode: top
 
 Endpoint                         Path Delay     Path Required     Slack
 ------------------------------------------------------------------------
-dout_29i[27] (out)                  8.85 r          389.40       380.55
-dout_29i[26] (out)                  8.55 f          389.40       380.85
-dout_29i[25] (out)                  8.08 f          389.40       381.32
-dout_29i[24] (out)                  7.61 f          389.40       381.79
-dout_29i[23] (out)                  7.20 f          389.40       382.20
-dout_29i[22] (out)                  6.58 f          389.40       382.82
-dout_29i[28] (out)                  5.38 f          389.40       384.02
-dout_29i[21] (out)                  4.47 f          389.40       384.93
-dout_29i[11] (out)                  4.37 f          389.40       385.03
-dout_29i[10] (out)                  4.11 f          389.40       385.29
-dout_29i[9] (out)                   4.11 f          389.40       385.29
-dout[11] (out)                      4.10 f          389.40       385.30
-dout_29i[5] (out)                   4.10 f          389.40       385.30
-dout_29i[8] (out)                   4.10 f          389.40       385.30
-dout_29i[17] (out)                  4.05 f          389.40       385.35
-dout_29i[15] (out)                  4.04 f          389.40       385.36
-dout_29i[13] (out)                  4.04 f          389.40       385.36
-dout_29i[0] (out)                   4.03 f          389.40       385.37
-dout_29i[6] (out)                   3.96 f          389.40       385.44
-dout_29i[14] (out)                  3.95 f          389.40       385.45
-dout_29i[16] (out)                  3.90 f          389.40       385.50
-dout[10] (out)                      3.84 f          389.40       385.56
-dout[15] (out)                      3.78 f          389.40       385.62
-dout[13] (out)                      3.77 f          389.40       385.63
-dout[9] (out)                       3.77 f          389.40       385.63
-dout[5] (out)                       3.76 f          389.40       385.64
-dout[8] (out)                       3.76 f          389.40       385.64
-dout_29i[18] (out)                  3.75 f          389.40       385.64
-dout_29i[19] (out)                  3.73 f          389.40       385.67
-dout_29i[12] (out)                  3.72 f          389.40       385.68
-dout[0] (out)                       3.69 f          389.40       385.71
-dout[14] (out)                      3.68 f          389.40       385.72
-dout_29i[1] (out)                   3.68 f          389.40       385.72
-dout_29i[4] (out)                   3.68 f          389.40       385.72
-dout_29i[7] (out)                   3.66 f          389.40       385.74
-dout_29i[2] (out)                   3.64 f          389.40       385.76
-dout[6] (out)                       3.62 f          389.40       385.78
-dout_29i[3] (out)                   3.57 f          389.40       385.83
-dout_29i[20] (out)                  3.47 r          389.40       385.93
-dout[12] (out)                      3.45 f          389.40       385.95
-dout[1] (out)                       3.34 f          389.40       386.06
-dout[4] (out)                       3.34 f          389.40       386.06
-dout[7] (out)                       3.33 f          389.40       386.07
-dout[2] (out)                       3.30 f          389.40       386.10
-dout[3] (out)                       3.23 f          389.40       386.17
-valid (out)                         1.23 f          389.40       388.17
+dout_29i[24] (out)                  2.63 r           -0.05        -2.68
+dout_29i[26] (out)                  2.57 r           -0.05        -2.62
+dout_29i[25] (out)                  2.54 r           -0.05        -2.59
+dout_29i[27] (out)                  2.52 r           -0.05        -2.57
+dout_29i[23] (out)                  2.39 r           -0.05        -2.44
+dout_29i[22] (out)                  2.29 r           -0.05        -2.34
+dout_29i[15] (out)                  2.26 r           -0.05        -2.31
+dout_29i[9] (out)                   2.25 r           -0.05        -2.30
+dout_29i[8] (out)                   2.25 r           -0.05        -2.30
+dout_29i[28] (out)                  2.22 r           -0.05        -2.27
+dout_29i[3] (out)                   2.21 r           -0.05        -2.26
+dout_29i[13] (out)                  2.21 r           -0.05        -2.26
+dout_29i[4] (out)                   2.21 r           -0.05        -2.26
+dout_29i[1] (out)                   2.20 r           -0.05        -2.25
+dout_29i[12] (out)                  2.17 r           -0.05        -2.22
+dout_29i[2] (out)                   2.16 r           -0.05        -2.21
+dout_29i[14] (out)                  2.16 r           -0.05        -2.21
+dout_29i[7] (out)                   2.15 r           -0.05        -2.20
+dout_29i[0] (out)                   2.14 r           -0.05        -2.19
+dout_29i[11] (out)                  2.13 r           -0.05        -2.18
+dout_29i[10] (out)                  2.13 r           -0.05        -2.18
+dout_29i[6] (out)                   2.12 r           -0.05        -2.17
+dout_29i[5] (out)                   2.10 r           -0.05        -2.15
+dout[8] (out)                       2.03 r           -0.05        -2.08
+dout[15] (out)                      2.02 r           -0.05        -2.07
+dout[9] (out)                       2.01 r           -0.05        -2.06
+dout_29i[19] (out)                  2.00 r           -0.05        -2.05
+dout_29i[20] (out)                  2.00 r           -0.05        -2.05
+dout[3] (out)                       1.99 r           -0.05        -2.04
+dout[4] (out)                       1.99 r           -0.05        -2.04
+dout[1] (out)                       1.98 r           -0.05        -2.03
+dout[13] (out)                      1.97 r           -0.05        -2.02
+dout[12] (out)                      1.96 r           -0.05        -2.01
+dout[14] (out)                      1.95 r           -0.05        -2.00
+dout[7] (out)                       1.94 r           -0.05        -1.99
+dout_29i[16] (out)                  1.94 r           -0.05        -1.99
+dout[2] (out)                       1.94 r           -0.05        -1.99
+dout[0] (out)                       1.93 r           -0.05        -1.98
+dout[11] (out)                      1.92 r           -0.05        -1.97
+dout[10] (out)                      1.91 r           -0.05        -1.96
+dout[6] (out)                       1.88 r           -0.05        -1.93
+dout_29i[17] (out)                  1.87 r           -0.05        -1.92
+dout[5] (out)                       1.86 r           -0.05        -1.91
+dout_29i[21] (out)                  1.85 r           -0.05        -1.90
+dout_29i[18] (out)                  1.81 r           -0.05        -1.86
+valid (out)                         1.03 r           -0.05        -1.08
 
 1

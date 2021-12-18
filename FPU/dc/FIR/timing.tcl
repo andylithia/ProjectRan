@@ -6,12 +6,12 @@
 ###################################################################### 
 
 # Setting variables 
-set clk_period 390
-set clk_uncertainty 0.1
+set clk_period 0
+set clk_uncertainty 0
 set clk_transition 0.010
-set typical_input_delay 0.5
-set typical_output_delay 0.5
-set typical_wire_load 0.05
+set typical_input_delay 0.05
+set typical_output_delay 0.05
+set typical_wire_load 0.005
 
 #Create real clock if clock port is found
 if {[sizeof_collection [get_ports clk]] > 0} {
